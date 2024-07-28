@@ -1,4 +1,4 @@
-package org.example
+package com.ertools
 
 fun main() {
     println("Hello World!")
