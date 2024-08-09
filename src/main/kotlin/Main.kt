@@ -1,5 +1,7 @@
 package com.ertools
 
+import com.ertools.runtime.MainRoutine
+
 fun main() {
-    println("Hello World!")
+    MainRoutine().start()
 }
