@@ -1,10 +1,11 @@
 package com.ertools.runtime
 
+import com.ertools.utils.Configuration
 import com.ertools.utils.Constance
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.ServerSocket
-import java.net.Socket
+import java.net.SocketTimeoutException
 import kotlin.concurrent.thread
 
 class CommunicationThread(
@@ -12,28 +13,49 @@ class CommunicationThread(
     private val listenAddresses: List<String>,
     private val connectionListener: ConnectionListener
 ) : Thread() {
-    private val sockets: List<Socket> = ArrayList()
-    private var connections: MutableMap<String, Connection> = HashMap()
+    var connection: ClientServiceThread? = null
+    private var pendingConnections: MutableMap<String, ServerSocket> = HashMap()
+    private var connections: MutableMap<String, ClientServiceThread> = HashMap()
 
     override fun run() {
-        listenAddresses.map { ip ->
+        listenAddresses.forEach { ip ->
             thread {
                 try {
-                    val inetAddress = InetAddress.getByName(ip)
-                    val serverSocket = ServerSocket()
-                    serverSocket.bind(InetSocketAddress(inetAddress, port))
-                    if(Constance.DEBUG_MODE) println("ENGINE: Bind $ip")
-
-                    while(true) {
-                        val clientSocket = serverSocket.accept()
-                        connections[ip] = Connection(clientSocket, connectionListener)
+                    val serverSocket: ServerSocket
+                    if(ip == "*") {
+                        serverSocket = ServerSocket(port)
+                    } else {
+                        val inetAddress = InetAddress.getByName(ip)
+                        serverSocket = ServerSocket()
+                        //serverSocket.reuseAddress = true
+                        serverSocket.soTimeout = Configuration.timeout * 1000
+                        serverSocket.bind(InetSocketAddress(inetAddress, port))
                     }
+                    pendingConnections[ip] = serverSocket
+                    if (Constance.DEBUG_MODE) println("ENGINE: Bind $ip")
+
+                    val clientSocket = serverSocket.accept()
+                    if(Constance.DEBUG_MODE) println("ENGINE: Connect $ip")
+                    pendingConnections.remove(ip)
+                    serverSocket.close()
+
+
+                    val connection = ClientServiceThread(clientSocket, connectionListener)
+                    connections[ip] = connection
+                    connection.start()
+                } catch (e: SocketTimeoutException) {
+                    if (Constance.DEBUG_MODE) println("ERROR: Socket timeout for $ip")
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
         }
+    }
 
+    fun shutdown() {
+        pendingConnections.forEach{ it.value.close() }
+        pendingConnections.clear()
 
+        connections.forEach { it.value.shutdown() }
     }
 }

@@ -3,7 +3,7 @@ package com.ertools.runtime
 import com.ertools.utils.Constance
 import java.net.Socket
 
-class Connection(
+class ClientServiceThread(
     private val client: Socket,
     private val listener: ConnectionListener
 ): Thread() {
