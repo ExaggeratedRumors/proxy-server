@@ -12,9 +12,9 @@ object Configuration {
         private set
     var sizeLimit: Long = 104576
         private set
-    lateinit var listenAddresses: String
+    lateinit var listenAddresses: List<String>
         private set
-    lateinit var allowedIpAdresses: List<String>
+    lateinit var allowedIpAddresses: List<String>
         private set
 
     fun load() {
@@ -25,8 +25,8 @@ object Configuration {
             listenPort = serverConfig.getInt("listen_port")
             timeout = serverConfig.getInt("timeout")
             sizeLimit = serverConfig.getLong("size_limit")
-            listenAddresses = serverConfig.getString("listen_addresses")
-            allowedIpAdresses = serverConfig.getStringList("allowed_ip_addresses")
+            listenAddresses = serverConfig.getStringList("listen_addresses")
+            allowedIpAddresses = serverConfig.getStringList("allowed_ip_addresses")
             if(Constance.DEBUG_MODE) {
                 println("#### DEBUG CONFIG:\n" +
                         "Server ID: $serverId\n" +
@@ -34,7 +34,7 @@ object Configuration {
                         "TimeOut: $timeout\n" +
                         "Listen addresses: $listenAddresses\n" +
                         "Size limit: $sizeLimit\n" +
-                        "Allowed IP addresses: $allowedIpAdresses")
+                        "Allowed IP addresses: $allowedIpAddresses")
             }
         } catch (e: Exception) {
             e.printStackTrace()

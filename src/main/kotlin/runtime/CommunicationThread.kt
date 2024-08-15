@@ -11,35 +11,37 @@ import kotlin.concurrent.thread
 class CommunicationThread(
     private val port: Int,
     private val listenAddresses: List<String>,
+    private val allowedAddresses: List<String>,
     private val connectionListener: ConnectionListener
 ) : Thread() {
-    var connection: ClientServiceThread? = null
     private var pendingConnections: MutableMap<String, ServerSocket> = HashMap()
     private var connections: MutableMap<String, ClientServiceThread> = HashMap()
 
+    /*************/
+    /**** API ****/
+    /*************/
     override fun run() {
         listenAddresses.forEach { ip ->
             thread {
                 try {
-                    val serverSocket: ServerSocket
-                    if(ip == "*") {
-                        serverSocket = ServerSocket(port)
-                    } else {
-                        val inetAddress = InetAddress.getByName(ip)
-                        serverSocket = ServerSocket()
-                        //serverSocket.reuseAddress = true
-                        serverSocket.soTimeout = Configuration.timeout * 1000
-                        serverSocket.bind(InetSocketAddress(inetAddress, port))
-                    }
-                    pendingConnections[ip] = serverSocket
-                    if (Constance.DEBUG_MODE) println("ENGINE: Bind $ip")
+                    /** Create server socket **/
+                    val serverSocket = bindServerSocket(ip)
+                    if(Constance.DEBUG_MODE) println("ENGINE: Bind $ip")
 
+                    /** Wait for client connection **/
                     val clientSocket = serverSocket.accept()
+                    val clientIp = clientSocket.inetAddress.hostAddress
+                    closeServerSocket(serverSocket, ip)
                     if(Constance.DEBUG_MODE) println("ENGINE: Connect $ip")
-                    pendingConnections.remove(ip)
-                    serverSocket.close()
 
+                    /** Check client IP is allowed **/
+                    if(!isIpAllowed(clientIp, allowedAddresses)) {
+                        if(Constance.DEBUG_MODE) println("ENGINE: Client refused $clientIp")
+                        clientSocket.close()
+                        return@thread
+                    }
 
+                    /** Start client service thread **/
                     val connection = ClientServiceThread(clientSocket, connectionListener)
                     connections[ip] = connection
                     connection.start()
@@ -57,5 +59,45 @@ class CommunicationThread(
         pendingConnections.clear()
 
         connections.forEach { it.value.shutdown() }
+    }
+
+    /*************/
+    /** Private **/
+    /*************/
+
+    private fun bindServerSocket(ip: String): ServerSocket {
+        val serverSocket: ServerSocket
+        if(ip == "*") {
+            serverSocket = ServerSocket(port)
+        } else {
+            val inetAddress = InetAddress.getByName(ip)
+            serverSocket = ServerSocket()
+            //serverSocket.reuseAddress = true
+            serverSocket.soTimeout = Configuration.timeout * 1000
+            serverSocket.bind(InetSocketAddress(inetAddress, port))
+        }
+        pendingConnections[ip] = serverSocket
+        return serverSocket
+    }
+
+    private fun closeServerSocket(serverSocket: ServerSocket, ip: String) {
+        pendingConnections.remove(ip)
+        serverSocket.close()
+    }
+
+    private fun isIpAllowed(clientIp: String, allowedIpAddresses: List<String>): Boolean {
+        if("any" in allowedIpAddresses) return true
+        for(cidr in allowedIpAddresses) {
+            val parts = cidr.split("/")
+            val network = InetAddress.getByName(parts[0]).address
+            val mask = (0xFFFFFFFF shl (32 - parts[1].toInt())).toInt()
+
+            val ipAddr = InetAddress.getByName(clientIp).address
+            val networkAddr = network.fold(0) { acc, byte -> (acc shl 8) or (byte.toInt() and 0xFF) }
+            val ipAddrInt = ipAddr.fold(0) { acc, byte -> (acc shl 8) or (byte.toInt() and 0xFF) }
+
+            if((networkAddr and mask) == (ipAddrInt and mask)) return true
+        }
+        return false
     }
 }
