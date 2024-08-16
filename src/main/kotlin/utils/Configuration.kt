@@ -4,37 +4,37 @@ import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
 
 object Configuration {
-    lateinit var serverId: String
+    lateinit var SERVER_ID: String
         private set
-    var listenPort: Int = 8080
+    var LISTEN_PORT: Int = 8080
         private set
-    var timeout: Int = 20
+    var TIMEOUT: Int = 20
         private set
-    var sizeLimit: Long = 104576
+    var SIZE_LIMIT: Int = 4096
         private set
-    lateinit var listenAddresses: List<String>
+    lateinit var LISTEN_ADDRESSES: List<String>
         private set
-    lateinit var allowedIpAddresses: List<String>
+    lateinit var ALLOWED_IP_ADDRESSES: List<String>
         private set
 
     fun load() {
         try {
             val config: Config = ConfigFactory.load("application.conf")
             val serverConfig = config.getConfig("server")
-            serverId = serverConfig.getString("server_id")
-            listenPort = serverConfig.getInt("listen_port")
-            timeout = serverConfig.getInt("timeout")
-            sizeLimit = serverConfig.getLong("size_limit")
-            listenAddresses = serverConfig.getStringList("listen_addresses")
-            allowedIpAddresses = serverConfig.getStringList("allowed_ip_addresses")
+            SERVER_ID = serverConfig.getString("server_id")
+            LISTEN_PORT = serverConfig.getInt("listen_port")
+            TIMEOUT = serverConfig.getInt("timeout")
+            SIZE_LIMIT = serverConfig.getInt("size_limit")
+            LISTEN_ADDRESSES = serverConfig.getStringList("listen_addresses")
+            ALLOWED_IP_ADDRESSES = serverConfig.getStringList("allowed_ip_addresses")
             if(Constance.DEBUG_MODE) {
                 println("#### DEBUG CONFIG:\n" +
-                        "Server ID: $serverId\n" +
-                        "Listen port: $listenPort\n" +
-                        "TimeOut: $timeout\n" +
-                        "Listen addresses: $listenAddresses\n" +
-                        "Size limit: $sizeLimit\n" +
-                        "Allowed IP addresses: $allowedIpAddresses")
+                        "Server ID: $SERVER_ID\n" +
+                        "Listen port: $LISTEN_PORT\n" +
+                        "TimeOut: $TIMEOUT\n" +
+                        "Listen addresses: $LISTEN_ADDRESSES\n" +
+                        "Size limit: $SIZE_LIMIT\n" +
+                        "Allowed IP addresses: $ALLOWED_IP_ADDRESSES")
             }
         } catch (e: Exception) {
             e.printStackTrace()

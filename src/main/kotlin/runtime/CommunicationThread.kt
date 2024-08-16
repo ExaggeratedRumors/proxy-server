@@ -6,6 +6,7 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.SocketTimeoutException
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 
 class CommunicationThread(
@@ -16,6 +17,7 @@ class CommunicationThread(
 ) : Thread() {
     private var pendingConnections: MutableMap<String, ServerSocket> = HashMap()
     private var connections: MutableMap<String, ClientServiceThread> = HashMap()
+    private var stopServer: AtomicBoolean = AtomicBoolean(false)
 
     /*************/
     /**** API ****/
@@ -23,38 +25,43 @@ class CommunicationThread(
     override fun run() {
         listenAddresses.forEach { ip ->
             thread {
-                try {
-                    /** Create server socket **/
-                    val serverSocket = bindServerSocket(ip)
-                    if(Constance.DEBUG_MODE) println("ENGINE: Bind $ip")
+                /** Create server socket **/
+                val serverSocket = bindServerSocket(ip)
+                if(Constance.DEBUG_MODE) println("ENGINE: Bind $ip")
 
-                    /** Wait for client connection **/
-                    val clientSocket = serverSocket.accept()
-                    val clientIp = clientSocket.inetAddress.hostAddress
-                    closeServerSocket(serverSocket, ip)
-                    if(Constance.DEBUG_MODE) println("ENGINE: Connect $ip")
+                while(!stopServer.get()) {
+                    try {
+                        /** Wait for client connection **/
+                        val clientSocket = serverSocket.accept()
+                        val clientIp = clientSocket.inetAddress.hostAddress
+                        if (Constance.DEBUG_MODE) println("ENGINE: Connect $ip")
 
-                    /** Check client IP is allowed **/
-                    if(!isIpAllowed(clientIp, allowedAddresses)) {
-                        if(Constance.DEBUG_MODE) println("ENGINE: Client refused $clientIp")
-                        clientSocket.close()
-                        return@thread
+                        /** Check client IP is allowed **/
+                        if (!isIpAllowed(clientIp, allowedAddresses)) {
+                            if (Constance.DEBUG_MODE) println("ENGINE: Client refused $clientIp")
+                            clientSocket.close()
+                            continue
+                        }
+
+                        /** Start client service thread **/
+                        val connection = ClientServiceThread(clientSocket, connectionListener, Configuration.TIMEOUT)
+                        connections[ip] = connection
+                        connection.start()
+                    } catch (e: SocketTimeoutException) {
+                        continue
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        break
                     }
-
-                    /** Start client service thread **/
-                    val connection = ClientServiceThread(clientSocket, connectionListener)
-                    connections[ip] = connection
-                    connection.start()
-                } catch (e: SocketTimeoutException) {
                     if (Constance.DEBUG_MODE) println("ERROR: Socket timeout for $ip")
-                } catch (e: Exception) {
-                    e.printStackTrace()
                 }
+                closeServerSocket(serverSocket, ip)
             }
         }
     }
 
     fun shutdown() {
+        stopServer.set(true)
         pendingConnections.forEach{ it.value.close() }
         pendingConnections.clear()
 
@@ -73,7 +80,7 @@ class CommunicationThread(
             val inetAddress = InetAddress.getByName(ip)
             serverSocket = ServerSocket()
             //serverSocket.reuseAddress = true
-            serverSocket.soTimeout = Configuration.timeout * 1000
+            serverSocket.soTimeout = Configuration.TIMEOUT * 1000
             serverSocket.bind(InetSocketAddress(inetAddress, port))
         }
         pendingConnections[ip] = serverSocket

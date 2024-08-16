@@ -9,6 +9,9 @@ class MainRoutine: ConnectionListener {
     private lateinit var requestQueue: ArrayList<Request>
     private lateinit var responseQueue: ArrayList<Response>
 
+    private lateinit var communicationThread: CommunicationThread
+
+    /** API **/
     fun start() {
         loadConfiguration()
         buildResources()
@@ -17,6 +20,11 @@ class MainRoutine: ConnectionListener {
         runUserInterface()
     }
 
+    fun shutdown() {
+        communicationThread.shutdown()
+    }
+
+    /** Private **/
     private fun loadConfiguration() {
         Configuration.load()
     }
@@ -29,9 +37,9 @@ class MainRoutine: ConnectionListener {
 
     private fun runCommunication() {
         CommunicationThread(
-            Configuration.listenPort,
-            Configuration.listenAddresses,
-            Configuration.allowedIpAddresses,
+            Configuration.LISTEN_PORT,
+            Configuration.LISTEN_ADDRESSES,
+            Configuration.ALLOWED_IP_ADDRESSES,
             this
         ).start()
     }
