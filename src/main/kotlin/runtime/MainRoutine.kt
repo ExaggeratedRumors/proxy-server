@@ -3,11 +3,12 @@ package com.ertools.runtime
 import com.ertools.dto.Request
 import com.ertools.dto.Response
 import com.ertools.utils.Configuration
+import com.ertools.utils.ObservableQueue
 
 class MainRoutine: ConnectionListener {
     private lateinit var topicList: ArrayList<String>
-    private lateinit var requestQueue: ArrayList<Request>
-    private lateinit var responseQueue: ArrayList<Response>
+    private lateinit var requestQueue: ObservableQueue<Request>
+    private lateinit var responseQueue: ObservableQueue<Response>
 
     private lateinit var communicationThread: CommunicationThread
 
@@ -31,8 +32,8 @@ class MainRoutine: ConnectionListener {
 
     private fun buildResources() {
         topicList = ArrayList()
-        requestQueue = ArrayList()
-        responseQueue = ArrayList()
+        requestQueue = ObservableQueue(::sendMessage)
+        responseQueue = ObservableQueue(::sendMessage)
     }
 
     private fun runCommunication() {
@@ -49,6 +50,10 @@ class MainRoutine: ConnectionListener {
     }
 
     private fun runUserInterface() {
+
+    }
+
+    private fun sendMessage() {
 
     }
 

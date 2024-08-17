@@ -1,6 +1,6 @@
 package com.ertools.dto
 
 data class Response (
-    val id: Int,
-    val message: String
+    val message: String,
+    val receivers: List<Int> /** Ports **/
 )
