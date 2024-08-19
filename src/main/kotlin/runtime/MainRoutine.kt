@@ -76,8 +76,8 @@ class MainRoutine: ConnectionListener {
         TODO("Not yet implemented")
     }
 
-    override fun onMessageSend(port: Int, size: Int, message: String) {
-        TODO("Not yet implemented")
+    override fun onMessageSend(response: Response) {
+        responseQueue.add(response)
     }
 
 }

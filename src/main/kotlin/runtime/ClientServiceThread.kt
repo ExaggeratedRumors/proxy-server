@@ -1,5 +1,6 @@
 package com.ertools.runtime
 
+import com.ertools.dto.Response
 import com.ertools.utils.Configuration
 import com.ertools.utils.Constance
 import java.io.DataInputStream
@@ -81,6 +82,7 @@ class ClientServiceThread(
     private fun send() {
         writer.write(buffer.copyOfRange(0, messageSize))
         val message = buffer.copyOfRange(0, messageSize).toString(Charsets.UTF_8)
-        listener.onMessageSend(client.port, messageSize, message)
+        listener.onMessageSend(Response(message, listOf(client.port))
+        )
     }
 }
