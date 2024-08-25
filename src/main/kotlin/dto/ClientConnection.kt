@@ -1,6 +1,6 @@
 package com.ertools.dto
 
-import com.ertools.runtime.ClientServiceThread
+import com.ertools.communication.ClientServiceThread
 import java.net.ServerSocket
 
 data class ClientConnection (

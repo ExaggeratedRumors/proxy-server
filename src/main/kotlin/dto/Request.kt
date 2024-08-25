@@ -1,6 +1,6 @@
 package com.ertools.dto
 
 data class Request (
-    val id: Int,
-    val message: String
+    val message: Message,
+    val clientPort: Int
 )

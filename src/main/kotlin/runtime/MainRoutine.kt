@@ -1,7 +1,10 @@
 package com.ertools.runtime
 
+import com.ertools.communication.CommunicationThread
+import com.ertools.communication.ConnectionListener
 import com.ertools.dto.Request
 import com.ertools.dto.Response
+import com.ertools.ui.ApplicationWindow
 import com.ertools.utils.Configuration
 import com.ertools.utils.ObservableQueue
 
@@ -37,12 +40,13 @@ class MainRoutine: ConnectionListener {
     }
 
     private fun runCommunication() {
-        CommunicationThread(
+        communicationThread = CommunicationThread(
             Configuration.LISTEN_PORT,
             Configuration.LISTEN_ADDRESSES,
-            Configuration.ALLOWED_IP_ADDRESSES,
-            this
-        ).start()
+            Configuration.ALLOWED_IP_ADDRESSES
+        )
+        communicationThread.addListener(this)
+        communicationThread.start()
     }
 
     private fun runMonitor() {
@@ -50,7 +54,8 @@ class MainRoutine: ConnectionListener {
     }
 
     private fun runUserInterface() {
-
+        val applicationWindow = ApplicationWindow(::shutdown)
+        communicationThread.addListener(applicationWindow)
     }
 
     private fun sendMessage() {
@@ -72,8 +77,8 @@ class MainRoutine: ConnectionListener {
         TODO("Not yet implemented")
     }
 
-    override fun onMessageReceive(port: Int, size: Int, message: String) {
-        TODO("Not yet implemented")
+    override fun onMessageReceive(request: Request) {
+        requestQueue.add(request)
     }
 
     override fun onMessageSend(response: Response) {

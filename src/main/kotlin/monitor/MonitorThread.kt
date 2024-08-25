@@ -1,10 +1,9 @@
-package com.ertools.runtime
+package com.ertools.monitor
 
 import com.ertools.dto.Request
 import com.ertools.dto.Response
 import com.ertools.utils.Constance
 import com.ertools.utils.ObservableQueue
-import java.util.concurrent.atomic.AtomicBoolean
 
 class MonitorThread(
     private val requestQueue: ObservableQueue<Request>,

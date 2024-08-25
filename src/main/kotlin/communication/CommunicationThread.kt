@@ -1,4 +1,4 @@
-package com.ertools.runtime
+package com.ertools.communication
 
 import com.ertools.utils.Configuration
 import com.ertools.utils.Constance
@@ -12,12 +12,12 @@ import kotlin.concurrent.thread
 class CommunicationThread(
     private val port: Int,
     private val listenAddresses: List<String>,
-    private val allowedAddresses: List<String>,
-    private val connectionListener: ConnectionListener
+    private val allowedAddresses: List<String>
 ) : Thread() {
     private var pendingConnections: MutableMap<String, ServerSocket> = HashMap()
     private var connections: MutableMap<String, ClientServiceThread> = HashMap()
     private var stopServer: AtomicBoolean = AtomicBoolean(false)
+    private var listeners: ArrayList<ConnectionListener> = ArrayList()
 
     /*************/
     /**** API ****/
@@ -44,7 +44,7 @@ class CommunicationThread(
                         }
 
                         /** Start client service thread **/
-                        val connection = ClientServiceThread(clientSocket, connectionListener, Configuration.TIMEOUT)
+                        val connection = ClientServiceThread(clientSocket, listeners, Configuration.TIMEOUT)
                         connections[ip] = connection
                         connection.start()
                     } catch (e: SocketTimeoutException) {
@@ -66,6 +66,10 @@ class CommunicationThread(
         pendingConnections.clear()
 
         connections.forEach { it.value.shutdown() }
+    }
+
+    fun addListener(connectionListener: ConnectionListener) {
+        listeners.add(connectionListener)
     }
 
     /*************/

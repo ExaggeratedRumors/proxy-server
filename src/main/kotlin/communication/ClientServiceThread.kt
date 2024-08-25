@@ -1,8 +1,10 @@
-package com.ertools.runtime
+package com.ertools.communication
 
+import com.ertools.dto.Request
 import com.ertools.dto.Response
 import com.ertools.utils.Configuration
 import com.ertools.utils.Constance
+import com.fasterxml.jackson.databind.ObjectMapper
 import java.io.DataInputStream
 import java.io.IOException
 import java.io.InputStream
@@ -12,7 +14,7 @@ import java.net.SocketTimeoutException
 
 class ClientServiceThread(
     private val client: Socket,
-    private val listener: ConnectionListener,
+    private val listeners: List<ConnectionListener>,
     timeout: Int = Configuration.TIMEOUT
 ): Thread() {
     private var stopClient = true
@@ -20,9 +22,11 @@ class ClientServiceThread(
     private var buffer: ByteArray = ByteArray(Configuration.SIZE_LIMIT)
     private val writer: OutputStream = client.getOutputStream()
     private val reader: InputStream = DataInputStream(client.getInputStream())
+    private val mapper: ObjectMapper = ObjectMapper()
 
     init {
         client.soTimeout = timeout
+        listeners.forEach { it.onClientAccept(port = client.port, ip = client.inetAddress.hostAddress) }
     }
 
     override fun run() {
@@ -31,7 +35,6 @@ class ClientServiceThread(
             try {
                 sleep(Constance.CONNECTION_THREAD_SLEEP)
                 recv() ?: continue
-                send()
             } catch (e: SocketTimeoutException) {
                 if (Constance.DEBUG_MODE) println("ENGINE: Socket timeout ${client.inetAddress.hostAddress}")
             } catch (e: OutOfMemoryError) {
@@ -54,7 +57,7 @@ class ClientServiceThread(
             //it.write(Utils.DISCONNECT_STATEMENT)
             it.flush()
         }
-        listener.onClientDisconnect(client.port)
+        listeners.forEach { it.onClientDisconnect(client.port) }
         stopClient = true
         client.close()
     }
@@ -64,25 +67,67 @@ class ClientServiceThread(
             //it.write(Utils.BUSY_STATEMENT)
             it.flush()
         }
-        listener.onServerBusy(client.port)
+        listeners.forEach { it.onServerBusy(client.port) }
         stopClient = true
         client.close()
     }
 
+    /*
+        public String receiveMessage() throws IOException {
+        if (clientSocket == null || !clientSocket.isConnected())
+            throw new IOException(CLIENT_NOT_CONNECTED_MSG);
+
+        byte[] bytes = new byte[sizeLimit];
+        int bytesRead = inputStream.read(bytes);
+
+        if (bytesRead == -1)
+            throw new IOException("Client communication error");
+
+        return new String(bytes, 0, bytesRead);
+    }
+
+
+
+
+
+        private Message mapReceivedMessage(String receivedMessage) {
+        if (receivedMessage == null || receivedMessage.isEmpty())
+            return null;
+
+        try {
+            String modifiedJson = insertTypeToPayload(receivedMessage);
+            Message message = mapper.readValue(modifiedJson, Message.class);
+
+            Set<ConstraintViolation<Message>> violations = Validator.validateJsonObject(message);
+            if (violations == null || !violations.isEmpty())
+                return null;
+
+            return message;
+        } catch (JsonProcessingException e) {
+//            e.printStackTrace();
+            return null;
+        }
+
+    }
+
+     */
 
     private fun recv(): String? {
         messageSize = reader.read(buffer)
         if(messageSize == -1) return null
-        val message = buffer.copyOfRange(0, messageSize).toString(Charsets.UTF_8)
-        println(message)
-        listener.onMessageReceive(client.port, messageSize, message)
+
+        val message: String = buffer.copyOfRange(0, messageSize).toString(Charsets.UTF_8)
+        val request: Request = mapper.readValue(message, Request::class.java)
+
+        if(Constance.DEBUG_MODE) println("ENGINE: Add request: $request")
+        listeners.forEach { it.onMessageReceive(request) }
+
         return message
     }
 
-    private fun send() {
+    /*private fun send() {
         writer.write(buffer.copyOfRange(0, messageSize))
         val message = buffer.copyOfRange(0, messageSize).toString(Charsets.UTF_8)
-        listener.onMessageSend(Response(message, listOf(client.port))
-        )
-    }
+        listener.onMessageSend(Response(message, listOf(client.port)))
+    }*/
 }

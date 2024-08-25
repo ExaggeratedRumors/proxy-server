@@ -10,6 +10,11 @@ repositories {
 }
 
 dependencies {
+    /** Reflection **/
+    implementation(kotlin("reflect"))
+
+    /** Serialization **/
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.+")
 
     /** Configuration **/
     implementation("com.typesafe:config:1.4.2")
