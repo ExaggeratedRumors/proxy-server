@@ -16,19 +16,23 @@ allprojects {
     }
 }
 
-dependencies {
-    /** Reflection **/
-    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.20")
-    implementation(kotlin("reflect"))
+subprojects {
+    apply(plugin = "kotlin")
 
-    /** Serialization **/
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.+")
+    dependencies {
+        /** Reflection **/
+        implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.20")
+        implementation(kotlin("reflect"))
 
-    /** Configuration **/
-    implementation("com.typesafe:config:1.4.2")
+        /** Serialization **/
+        implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.17.+")
 
-    /** Test **/
-    testImplementation(kotlin("test"))
+        /** Configuration **/
+        implementation("com.typesafe:config:1.4.2")
+
+        /** Test **/
+        testImplementation(kotlin("test"))
+    }
 }
 
 tasks.test {
