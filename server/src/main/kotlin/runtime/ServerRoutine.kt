@@ -8,7 +8,7 @@ import com.ertools.ui.ApplicationWindow
 import com.ertools.utils.Configuration
 import com.ertools.utils.ObservableQueue
 
-class MainRoutine: ConnectionListener {
+class ServerRoutine: ConnectionListener {
     private lateinit var topicList: ArrayList<String>
     private lateinit var requestQueue: ObservableQueue<Request>
     private lateinit var responseQueue: ObservableQueue<Response>

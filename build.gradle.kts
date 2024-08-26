@@ -9,8 +9,16 @@ repositories {
     mavenCentral()
 }
 
+allprojects {
+    repositories {
+        mavenCentral()
+        google()
+    }
+}
+
 dependencies {
     /** Reflection **/
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.7.20")
     implementation(kotlin("reflect"))
 
     /** Serialization **/
@@ -28,4 +36,17 @@ tasks.test {
 }
 kotlin {
     jvmToolchain(20)
+}
+
+tasks.register("runServer") {
+    group = "application"
+    description = "Run server"
+    dependsOn(":server:run")
+}
+
+tasks.register("runClient") {
+    group = "application"
+    description = "Run client"
+    dependsOn("client:run")
+    shouldRunAfter("runServer")
 }

@@ -3,3 +3,7 @@ plugins {
 }
 rootProject.name = "proxy-server"
 
+include("client", "server")
+
+project(":client").projectDir = File("client")
+project(":server").projectDir = File("server")
