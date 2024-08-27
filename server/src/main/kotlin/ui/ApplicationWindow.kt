@@ -19,8 +19,8 @@ class ApplicationWindow(
     private val shutdownCallback: () -> Unit
 ): JFrame(), ConnectionListener {
 
-    private val height = 300
-    private val width = 600
+    private val height = 320
+    private val width = 480
     private val connectionArea = JTextArea("Wait for clients...")
     private val messageArea = JTextArea("Server started. Press Q to shut down.")
     private val scrollPane1 = JScrollPane(messageArea)

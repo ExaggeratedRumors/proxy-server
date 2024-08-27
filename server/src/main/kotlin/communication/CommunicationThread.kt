@@ -97,7 +97,15 @@ class CommunicationThread(
     }
 
     private fun isIpAllowed(clientIp: String, allowedIpAddresses: List<String>): Boolean {
+        if(Constance.DEBUG_MODE) println("ENGINE: Check allowed IP: $clientIp from $allowedIpAddresses")
         if("any" in allowedIpAddresses) return true
+        if("*" in allowedIpAddresses) return true
+        if(clientIp in allowedIpAddresses) return true
+        if("localhost" in allowedIpAddresses) {
+            val localhost: String = InetAddress.getLocalHost().hostAddress
+            println("TEST: $clientIp $localhost")
+            if(clientIp == localhost) return true
+        }
         for(cidr in allowedIpAddresses) {
             val parts = cidr.split("/")
             val network = InetAddress.getByName(parts[0]).address

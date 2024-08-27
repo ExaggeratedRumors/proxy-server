@@ -1,19 +1,29 @@
 package ui
 
 import communication.ClientConnection
-import java.awt.Dimension
+import utils.Constance
+import java.awt.*
 import java.awt.event.KeyEvent
-import javax.swing.JFrame
-import javax.swing.JScrollPane
-import javax.swing.JTextArea
+import javax.swing.*
 import kotlin.concurrent.thread
 
 class ClientWindow(private val connection: ClientConnection) : JFrame() {
-    private val textArea = JTextArea()
+    private val connectionLabel: JLabel = JLabel("Disconnected", SwingConstants.CENTER)
+
     init {
+        /** Windows bar **/
         title = "Client"
         defaultCloseOperation = EXIT_ON_CLOSE
+        isResizable = false
+        setSize(Constance.WINDOW_WIDTH, Constance.WINDOW_HEIGHT)
 
+        /** Layout **/
+        layout = GridBagLayout()
+        val gbc = GridBagConstraints()
+        gbc.fill = GridBagConstraints.BOTH
+
+        /** Input area **/
+        val textArea = JTextArea()
         textArea.lineWrap = true
         textArea.wrapStyleWord = true
         textArea.isEditable = false
@@ -30,14 +40,60 @@ class ClientWindow(private val connection: ClientConnection) : JFrame() {
         })
 
         val scrollPane = JScrollPane(textArea)
-        scrollPane.preferredSize = Dimension(400, 300)
-        add(scrollPane)
+        scrollPane.preferredSize = Dimension(Constance.WINDOW_WIDTH, Constance.WINDOW_HEIGHT)
+        gbc.gridx = 0
+        gbc.gridy = 0
+        gbc.weightx = 0.7
+        gbc.weighty = 1.0
+        gbc.gridheight = 1
+        add(scrollPane, gbc)
+
+        /** Right panel **/
+        val rightPanel = JPanel()
+        rightPanel.border = BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(Color.GRAY), "Connection"
+        )
+        rightPanel.layout = GridBagLayout()
+        gbc.gridx = 1
+        gbc.weightx = 0.3
+        add(rightPanel, gbc)
+
+        val rightGbc = GridBagConstraints()
+
+        /** Connection label **/
+        rightGbc.gridx = 0
+        rightGbc.gridy = 0
+        rightGbc.gridwidth = GridBagConstraints.REMAINDER
+        rightGbc.fill = GridBagConstraints.HORIZONTAL
+        rightGbc.insets = Insets(4, 25, 4, 25)
+        rightPanel.add(connectionLabel, rightGbc)
+
+        /** Renew connection button **/
+        val button = JButton("Renew connection")
+        button.addActionListener { renewConnection() }
+        rightGbc.gridy = 1
+        rightGbc.weighty = 1.0
+        rightGbc.anchor = GridBagConstraints.SOUTH
+        rightPanel.add(button, rightGbc)
+
+        /** Pack UI **/
         pack()
         setLocationRelativeTo(null)
         isVisible = true
     }
 
+    fun renewConnection() {
+        try {
+            connection.startConnection()
+            connectionLabel.text = "Connected"
+        } catch (e: Exception) {
+            e.printStackTrace()
+            connectionLabel.text = "Disconnected"
+        }
+    }
+
     fun shutdownClient() {
+        connection.shutdown()
         this.dispose()
     }
 }
