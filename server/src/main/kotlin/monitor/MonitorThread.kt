@@ -1,7 +1,7 @@
 package com.ertools.monitor
 
-import com.ertools.dto.Request
-import com.ertools.dto.Response
+import dto.Request
+import dto.Response
 import com.ertools.utils.Constance
 import com.ertools.utils.ObservableQueue
 

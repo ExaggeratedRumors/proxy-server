@@ -1,6 +1,6 @@
 package communication
 
-import utils.Constance
+import utils.ClientUtils
 import java.io.DataInputStream
 import java.io.InputStream
 import java.io.OutputStream
@@ -10,14 +10,14 @@ import java.net.SocketException
 import java.net.UnknownHostException
 
 class ClientConnection  (
-    private val port: Int = Constance.DEFAULT_PORT,
-    private val ip: String = Constance.DEFAULT_IP
+    private val port: Int = ClientUtils.DEFAULT_PORT,
+    private val ip: String = ClientUtils.DEFAULT_IP
 ) : Thread() {
     private var isInitialized = false
     private var socket: Socket? = null
     private var writer: OutputStream? = null
     private var reader: InputStream? = null
-    private val buffer: ByteArray = ByteArray(Constance.MAX_BUFFER_SIZE)
+    private val buffer: ByteArray = ByteArray(ClientUtils.MAX_BUFFER_SIZE)
 
     fun startConnection() {
         try {

@@ -1,4 +1,4 @@
-package com.ertools.dto
+package dto
 
 enum class MessageMode {
     Producer, Subscriber

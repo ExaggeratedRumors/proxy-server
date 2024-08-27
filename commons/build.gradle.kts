@@ -5,12 +5,8 @@ plugins {
 tasks {
     val run by registering(JavaExec::class) {
         group = "application"
-        description = "Run server"
+        description = "Run commons"
         classpath = sourceSets.main.get().runtimeClasspath
-        mainClass = "ServerMainKt"
+        mainClass = "CommonsMain.kt"
     }
-}
-
-dependencies {
-    implementation(project(":commons"))
 }

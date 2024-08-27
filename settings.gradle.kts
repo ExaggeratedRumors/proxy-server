@@ -3,7 +3,8 @@ plugins {
 }
 rootProject.name = "proxy-server"
 
-include("client", "server")
+include("client", "server", "commons")
 
 project(":client").projectDir = File("client")
 project(":server").projectDir = File("server")
+project(":commons").projectDir = File("commons")

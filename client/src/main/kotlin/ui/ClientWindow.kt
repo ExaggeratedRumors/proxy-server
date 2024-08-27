@@ -1,7 +1,7 @@
 package ui
 
 import communication.ClientConnection
-import utils.Constance
+import utils.ClientUtils
 import java.awt.*
 import java.awt.event.KeyEvent
 import javax.swing.*
@@ -15,7 +15,7 @@ class ClientWindow(private val connection: ClientConnection) : JFrame() {
         title = "Client"
         defaultCloseOperation = EXIT_ON_CLOSE
         isResizable = false
-        setSize(Constance.WINDOW_WIDTH, Constance.WINDOW_HEIGHT)
+        setSize(ClientUtils.WINDOW_WIDTH, ClientUtils.WINDOW_HEIGHT)
 
         /** Layout **/
         layout = GridBagLayout()
@@ -41,7 +41,7 @@ class ClientWindow(private val connection: ClientConnection) : JFrame() {
         })
 
         val scrollPane = JScrollPane(textArea)
-        scrollPane.preferredSize = Dimension(Constance.WINDOW_WIDTH, Constance.WINDOW_HEIGHT)
+        scrollPane.preferredSize = Dimension(ClientUtils.WINDOW_WIDTH, ClientUtils.WINDOW_HEIGHT)
         gbc.gridx = 0
         gbc.gridy = 0
         gbc.weightx = 0.8

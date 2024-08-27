@@ -1,4 +1,4 @@
-package com.ertools.dto
+package dto
 
 data class Response (
     val message: Message,

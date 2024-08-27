@@ -51,6 +51,13 @@ tasks.register("runServer") {
 tasks.register("runClient") {
     group = "application"
     description = "Run client"
-    dependsOn("client:run")
+    dependsOn("Client:run")
     shouldRunAfter("runServer")
+}
+
+tasks.register("runCommons") {
+    group = "application"
+    description = "Run commons"
+    dependsOn(":commons:run")
+    shouldRunAfter("runCommons")
 }

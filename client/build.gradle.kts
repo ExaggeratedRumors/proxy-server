@@ -12,5 +12,6 @@ tasks {
 }
 
 dependencies {
+    implementation(project(":commons"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1-Beta")
 }

@@ -2,8 +2,8 @@ package com.ertools.runtime
 
 import com.ertools.communication.CommunicationThread
 import com.ertools.communication.ConnectionListener
-import com.ertools.dto.Request
-import com.ertools.dto.Response
+import dto.Request
+import dto.Response
 import com.ertools.ui.ApplicationWindow
 import com.ertools.utils.Configuration
 import com.ertools.utils.Constance

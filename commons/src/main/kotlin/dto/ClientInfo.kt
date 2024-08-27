@@ -1,4 +1,4 @@
-package com.ertools.dto
+package dto
 
 class ClientInfo (
     val id: Int,

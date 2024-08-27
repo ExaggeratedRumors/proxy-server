@@ -1,6 +1,6 @@
 package utils
 
-object Constance {
+object ClientUtils {
     /** Connection **/
     const val DEFAULT_PORT = 8080
     const val DEFAULT_IP = "localhost"

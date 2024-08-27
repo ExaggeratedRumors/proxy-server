@@ -1,10 +1,9 @@
 package com.ertools.ui
 
-import com.ertools.dto.Response
 import com.ertools.communication.ConnectionListener
-import com.ertools.dto.ClientInfo
-import com.ertools.dto.Request
-import com.ertools.utils.Constance
+import dto.ClientInfo
+import dto.Request
+import dto.Response
 import java.awt.BorderLayout
 import java.awt.Dimension
 import java.awt.event.KeyEvent

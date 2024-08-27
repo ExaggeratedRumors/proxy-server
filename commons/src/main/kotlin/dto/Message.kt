@@ -1,4 +1,4 @@
-package com.ertools.dto
+package dto
 
 data class Message (
     val type: MessageType,
