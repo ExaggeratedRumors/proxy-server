@@ -101,12 +101,9 @@ class CommunicationThread(
         if("any" in allowedIpAddresses) return true
         if("*" in allowedIpAddresses) return true
         if(clientIp in allowedIpAddresses) return true
-        if("localhost" in allowedIpAddresses) {
-            val localhost: String = InetAddress.getLocalHost().hostAddress
-            println("TEST: $clientIp $localhost")
-            if(clientIp == localhost) return true
-        }
+        if("localhost" in allowedIpAddresses && clientIp == "127.0.0.1") return true
         for(cidr in allowedIpAddresses) {
+            if(!cidr.contains('/')) continue
             val parts = cidr.split("/")
             val network = InetAddress.getByName(parts[0]).address
             val mask = (0xFFFFFFFF shl (32 - parts[1].toInt())).toInt()

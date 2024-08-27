@@ -33,8 +33,9 @@ class ClientWindow(private val connection: ClientConnection) : JFrame() {
                 val character = e.keyChar
                 thread {
                     val reply = connection.sendAndReceive(character)
-                    if(reply == null) shutdownClient()
-                    else textArea.append(reply.toString())
+                    /*if(reply == null) shutdownClient()
+                    else textArea.append(reply.toString())*/
+                    textArea.append(reply.toString())
                 }
             }
         })
@@ -43,7 +44,7 @@ class ClientWindow(private val connection: ClientConnection) : JFrame() {
         scrollPane.preferredSize = Dimension(Constance.WINDOW_WIDTH, Constance.WINDOW_HEIGHT)
         gbc.gridx = 0
         gbc.gridy = 0
-        gbc.weightx = 0.7
+        gbc.weightx = 0.8
         gbc.weighty = 1.0
         gbc.gridheight = 1
         add(scrollPane, gbc)
@@ -55,7 +56,7 @@ class ClientWindow(private val connection: ClientConnection) : JFrame() {
         )
         rightPanel.layout = GridBagLayout()
         gbc.gridx = 1
-        gbc.weightx = 0.3
+        gbc.weightx = 0.2
         add(rightPanel, gbc)
 
         val rightGbc = GridBagConstraints()

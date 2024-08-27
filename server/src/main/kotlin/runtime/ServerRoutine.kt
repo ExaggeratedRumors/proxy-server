@@ -6,6 +6,7 @@ import com.ertools.dto.Request
 import com.ertools.dto.Response
 import com.ertools.ui.ApplicationWindow
 import com.ertools.utils.Configuration
+import com.ertools.utils.Constance
 import com.ertools.utils.ObservableQueue
 
 class ServerRoutine: ConnectionListener {
@@ -66,23 +67,25 @@ class ServerRoutine: ConnectionListener {
     /** Connection listening **/
 
     override fun onClientAccept(port: Int, ip: String) {
-        TODO("Not yet implemented")
+        if(Constance.DEBUG_MODE) println("ENGINE: $port ($ip) joined to server.")
     }
 
     override fun onClientDisconnect(port: Int) {
-        TODO("Not yet implemented")
+        if(Constance.DEBUG_MODE) println("ENGINE: $port has been disconnected.")
     }
 
     override fun onServerBusy(port: Int) {
-        TODO("Not yet implemented")
+        if(Constance.DEBUG_MODE) println("ENGINE: $port was rejected: server is busy.")
     }
 
     override fun onMessageReceive(request: Request) {
         requestQueue.add(request)
+        if(Constance.DEBUG_MODE) println("ENGINE: Received from ${request.clientPort}: ${request.message}")
     }
 
     override fun onMessageSend(response: Response) {
         responseQueue.add(response)
+        if(Constance.DEBUG_MODE) println("ENGINE: Reply to ${response.receivers}: ${response.message}")
     }
 
 }

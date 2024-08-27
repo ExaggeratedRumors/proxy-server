@@ -36,15 +36,15 @@ class ClientServiceThread(
                 sleep(Constance.CONNECTION_THREAD_SLEEP)
                 recv() ?: continue
             } catch (e: SocketTimeoutException) {
-                if (Constance.DEBUG_MODE) println("ENGINE: Socket timeout ${client.inetAddress.hostAddress}")
+                if (Constance.DEBUG_MODE) error("ENGINE: Socket timeout ${client.inetAddress.hostAddress}")
             } catch (e: OutOfMemoryError) {
                 shutdown()
                 e.printStackTrace()
-                error("ERROR: No enough memory to allocate received message.")
+                if (Constance.DEBUG_MODE) error("ERROR: No enough memory to allocate received message.")
             } catch (e: IOException) {
                 shutdown()
                 e.printStackTrace()
-                error("ERROR: IO error occurs.")
+                if (Constance.DEBUG_MODE) error("ERROR: IO error occurs.")
             } catch (e: Exception) {
                 shutdown()
                 e.printStackTrace()

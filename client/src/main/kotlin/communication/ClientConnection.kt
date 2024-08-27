@@ -1,6 +1,5 @@
 package communication
 
-import ui.ClientWindow
 import utils.Constance
 import java.io.DataInputStream
 import java.io.InputStream
@@ -15,36 +14,34 @@ class ClientConnection  (
     private val ip: String = Constance.DEFAULT_IP
 ) : Thread() {
     private var isInitialized = false
-    private lateinit var socket: Socket
-    private lateinit var writer: OutputStream
-    private lateinit var reader: InputStream
+    private var socket: Socket? = null
+    private var writer: OutputStream? = null
+    private var reader: InputStream? = null
     private val buffer: ByteArray = ByteArray(Constance.MAX_BUFFER_SIZE)
 
-    fun startConnection(): Boolean {
+    fun startConnection() {
         try {
+            if(isInitialized) shutdown()
             socket = Socket(ip, port)
-            writer = socket.getOutputStream()
-            reader = DataInputStream(socket.getInputStream())
-            start()
+            writer = socket!!.getOutputStream()
+            reader = DataInputStream(socket!!.getInputStream())
             isInitialized = true
             println("ENGINE: Client started.")
         } catch (e: IllegalArgumentException) {
-            throw(IllegalStateException("ERROR: Port number must be between 0 and 65535"))
+            throw(IllegalStateException("ERROR: Port number must be between 0 and 65535", e))
         } catch (e: ConnectException) {
-            throw(ConnectException("ERROR: Failed to connect to the server."))
+            throw(Exception("ERROR: Failed to connect to the server.", e))
         } catch (e: UnknownHostException) {
-            throw(UnknownHostException("ERROR: Unknown host."))
-        } catch (e: Exception) {
+            e.addSuppressed(Exception("ERROR: Unknown host.", e))
             throw(e)
         }
-        return isInitialized
     }
 
     fun sendAndReceive(message: Char): String? {
-        if(!isInitialized) throw IllegalStateException()
+        if(!isInitialized) throw IllegalStateException("ERROR: Connection has not been initialized.")
         try {
-            writer.write(ByteArray(1) { message.code.toByte() })
-            val messageSize = reader.read(buffer)
+            writer!!.write(ByteArray(1) { message.code.toByte() })
+            val messageSize = reader!!.read(buffer)
             if(messageSize == -1) return null
             return buffer.copyOfRange(0, messageSize).toString(Charsets.UTF_8)
         } catch (e: SocketException) {
@@ -56,6 +53,11 @@ class ClientConnection  (
     }
 
     fun shutdown() {
-        isInitialized = false
+        if(isInitialized) {
+            isInitialized = false
+            writer!!.close()
+            reader!!.close()
+            socket!!.close()
+        }
     }
 }

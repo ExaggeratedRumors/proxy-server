@@ -90,8 +90,6 @@ class ApplicationWindow(
         clients.add(ClientInfo(clientsCounter, port, ip))
 
         notifyMessage("#$clientsCounter joined to server.")
-        if(Constance.DEBUG_MODE) println("ENGINE: $clientsCounter joined to server.")
-
         clientsCounter += 1
         revalidateClientsInfo()
     }
@@ -101,8 +99,6 @@ class ApplicationWindow(
         if(client == null) return
 
         notifyMessage("#${client.id} has been disconnected.")
-        if(Constance.DEBUG_MODE) println("ENGINE: ${client.id} has been disconnected.")
-
         clients.removeIf { it.port == port }
         revalidateClientsInfo()
     }
@@ -112,7 +108,6 @@ class ApplicationWindow(
         if(client == null) return
 
         notifyMessage("#${client.id} was rejected: server is busy.")
-        if(Constance.DEBUG_MODE) println("ENGINE: ${client.id} was rejected: server is busy.")
 
         clients.removeIf { it.port == port }
         revalidateClientsInfo()
@@ -123,13 +118,10 @@ class ApplicationWindow(
         if(client == null) return
         client.messages.add(request.message)
 
-        notifyMessage("#${client.id} Received ${size}B: ${request.message}")
-        if(Constance.DEBUG_MODE) println("ENGINE: ${client.id} Received ${size}B: ${request.message}")
+        notifyMessage("#${client.id} Received $size ${request.message}")
     }
 
     override fun onMessageSend(response: Response) {
         notifyMessage("Reply to ${response.receivers}: ${response.message}")
-        if(Constance.DEBUG_MODE) println("ENGINE: Reply to ${response.receivers}: ${response.message}")
-
     }
 }
