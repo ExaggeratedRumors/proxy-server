@@ -4,11 +4,9 @@ import dto.Response
 import com.ertools.utils.Configuration
 import com.ertools.utils.Constance
 import com.fasterxml.jackson.databind.ObjectMapper
+import dto.Message
 import dto.Request
-import java.io.DataInputStream
-import java.io.IOException
-import java.io.InputStream
-import java.io.OutputStream
+import java.io.*
 import java.net.Socket
 import java.net.SocketTimeoutException
 
@@ -20,8 +18,8 @@ class ClientServiceThread(
     private var stopClient = true
     private var messageSize: Int = 0
     private var buffer: ByteArray = ByteArray(Configuration.SIZE_LIMIT)
-    private val writer: OutputStream = client.getOutputStream()
-    private val reader: InputStream = DataInputStream(client.getInputStream())
+    private val writer: ObjectOutputStream = ObjectOutputStream(client.getOutputStream())
+    private val reader: ObjectInputStream = ObjectInputStream(client.getInputStream())
     private val mapper: ObjectMapper = ObjectMapper()
 
     init {
@@ -52,17 +50,48 @@ class ClientServiceThread(
         }
     }
 
-    fun shutdown() {
-        writer.bufferedWriter().use {
-            //it.write(Utils.DISCONNECT_STATEMENT)
-            it.flush()
+    private fun recv(): Message? {
+        if(stopClient) throw IllegalStateException("ERROR: Client ${client.port} is stopped.")
+        try {
+            messageSize = reader.read(buffer)
+            if (messageSize == -1) return null
+
+            val rawMessage: String = buffer.copyOfRange(0, messageSize).toString(Charsets.UTF_8)
+            val message: Message = mapper.readValue(rawMessage, Message::class.java)
+            listeners.forEach { it.onMessageReceive(Request(message, client.port)) }
+
+            return message
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw e
         }
+    }
+
+    /*********/
+    /** API **/
+    /*********/
+    fun shutdown() {
+        if(stopClient) return
         listeners.forEach { it.onClientDisconnect(client.port) }
         stopClient = true
+        writer.close()
+        reader.close()
         client.close()
     }
 
-    fun refuseConnection() {
+    fun send(response: Response) {
+        if(stopClient) throw IllegalStateException("ERROR: Client ${client.port} is stopped.")
+        try {
+            writer.writeObject(response.message)
+            listeners.forEach { it.onMessageSend(response) }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            throw(e)
+        }
+    }
+
+
+/*    fun refuseConnection() {
         writer.bufferedWriter().use {
             //it.write(Utils.BUSY_STATEMENT)
             it.flush()
@@ -70,62 +99,13 @@ class ClientServiceThread(
         listeners.forEach { it.onServerBusy(client.port) }
         stopClient = true
         client.close()
-    }
+    }*/
+
+
 
     /*
-        public String receiveMessage() throws IOException {
-        if (clientSocket == null || !clientSocket.isConnected())
-            throw new IOException(CLIENT_NOT_CONNECTED_MSG);
 
-        byte[] bytes = new byte[sizeLimit];
-        int bytesRead = inputStream.read(bytes);
-
-        if (bytesRead == -1)
-            throw new IOException("Client communication error");
-
-        return new String(bytes, 0, bytesRead);
-    }
-
-
-
-
-
-        private Message mapReceivedMessage(String receivedMessage) {
-        if (receivedMessage == null || receivedMessage.isEmpty())
-            return null;
-
-        try {
-            String modifiedJson = insertTypeToPayload(receivedMessage);
-            Message message = mapper.readValue(modifiedJson, Message.class);
-
-            Set<ConstraintViolation<Message>> violations = Validator.validateJsonObject(message);
-            if (violations == null || !violations.isEmpty())
-                return null;
-
-            return message;
-        } catch (JsonProcessingException e) {
-//            e.printStackTrace();
-            return null;
-        }
-
-    }
-
-     */
-
-    private fun recv(): String? {
-        messageSize = reader.read(buffer)
-        if(messageSize == -1) return null
-
-        val message: String = buffer.copyOfRange(0, messageSize).toString(Charsets.UTF_8)
-        val request: Request = mapper.readValue(message, Request::class.java)
-
-        if(Constance.DEBUG_MODE) println("ENGINE: Add request: $request")
-        listeners.forEach { it.onMessageReceive(request) }
-
-        return message
-    }
-
-    /*private fun send() {
+    private fun send() {
         writer.write(buffer.copyOfRange(0, messageSize))
         val message = buffer.copyOfRange(0, messageSize).toString(Charsets.UTF_8)
         listener.onMessageSend(Response(message, listOf(client.port)))

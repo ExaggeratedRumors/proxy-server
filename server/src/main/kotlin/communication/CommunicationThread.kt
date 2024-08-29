@@ -2,6 +2,7 @@ package com.ertools.communication
 
 import com.ertools.utils.Configuration
 import com.ertools.utils.Constance
+import dto.Message
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.ServerSocket
@@ -15,7 +16,7 @@ class CommunicationThread(
     private val allowedAddresses: List<String>
 ) : Thread() {
     private var pendingConnections: MutableMap<String, ServerSocket> = HashMap()
-    private var connections: MutableMap<String, ClientServiceThread> = HashMap()
+    private var connections: MutableMap<Int, ClientServiceThread> = HashMap()
     private var stopServer: AtomicBoolean = AtomicBoolean(false)
     private var listeners: ArrayList<ConnectionListener> = ArrayList()
 
@@ -45,7 +46,7 @@ class CommunicationThread(
 
                         /** Start client service thread **/
                         val connection = ClientServiceThread(clientSocket, listeners, Configuration.TIMEOUT)
-                        connections[ip] = connection
+                        connections[clientSocket.port] = connection
                         connection.start()
                     } catch (e: SocketTimeoutException) {
                         continue
@@ -57,6 +58,12 @@ class CommunicationThread(
                 }
                 closeServerSocket(serverSocket, ip)
             }
+        }
+    }
+
+    fun send(clients: List<Int>, message: Message) {
+        clients.forEach {
+            connections[it]?.send(message)
         }
     }
 
