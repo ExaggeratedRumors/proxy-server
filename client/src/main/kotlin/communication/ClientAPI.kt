@@ -17,5 +17,5 @@ interface ClientAPI {
     fun withdrawProducer(topicName: String)
     fun createSubscriber(topicName: String, callback: (message: Message) -> Unit)
     fun withdrawSubscriber(topicName: String)
-    fun stop()
+    fun stopConnection()
 }

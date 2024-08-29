@@ -2,6 +2,7 @@ package com.ertools.runtime
 
 import com.ertools.communication.CommunicationThread
 import com.ertools.communication.ConnectionListener
+import com.ertools.monitor.MonitorThread
 import dto.Request
 import dto.Response
 import com.ertools.ui.ApplicationWindow
@@ -10,13 +11,19 @@ import com.ertools.utils.Constance
 import com.ertools.utils.ObservableQueue
 
 class ServerRoutine: ConnectionListener {
-    private lateinit var topicList: ArrayList<String>
-    private lateinit var requestQueue: ObservableQueue<Request>
-    private lateinit var responseQueue: ObservableQueue<Response>
+    /** Connection service **/
+    private lateinit var topicList: ArrayList<String>               /** Topics **/
+    private lateinit var requestQueue: ObservableQueue<Request>     /*** KKO  ***/
+    private lateinit var responseQueue: ObservableQueue<Response>   /*** KKW  ***/
 
+    /** Threads **/
     private lateinit var communicationThread: CommunicationThread
+    private lateinit var monitorThread: MonitorThread
 
-    /** API **/
+
+    /*************/
+    /**   API   **/
+    /*************/
     fun start() {
         loadConfiguration()
         buildResources()
@@ -25,18 +32,20 @@ class ServerRoutine: ConnectionListener {
         runUserInterface()
     }
 
-    fun shutdown() {
+    private fun shutdown() {
         communicationThread.shutdown()
     }
 
+    /*************/
     /** Private **/
+    /*************/
     private fun loadConfiguration() {
         Configuration.load()
     }
 
     private fun buildResources() {
         topicList = ArrayList()
-        requestQueue = ObservableQueue(::sendMessage)
+        requestQueue = ObservableQueue()
         responseQueue = ObservableQueue(::sendMessage)
     }
 
@@ -51,7 +60,11 @@ class ServerRoutine: ConnectionListener {
     }
 
     private fun runMonitor() {
-
+        monitorThread = MonitorThread(
+            requestQueue,
+            responseQueue
+        )
+        monitorThread.start()
     }
 
     private fun runUserInterface() {
@@ -64,7 +77,10 @@ class ServerRoutine: ConnectionListener {
     }
 
 
+
+    /**************************/
     /** Connection listening **/
+    /**************************/
 
     override fun onClientAccept(port: Int, ip: String) {
         if(Constance.DEBUG_MODE) println("ENGINE: $port ($ip) joined to server.")

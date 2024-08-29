@@ -1,6 +1,9 @@
 package utils
 
 object ClientUtils {
+    /** Debugging **/
+    const val DEBUG_MODE = true
+
     /** Connection **/
     const val DEFAULT_PORT = 8080
     const val DEFAULT_IP = "localhost"

@@ -1,10 +1,10 @@
 package com.ertools.communication
 
-import com.ertools.dto.Request
-import com.ertools.dto.Response
+import dto.Response
 import com.ertools.utils.Configuration
 import com.ertools.utils.Constance
 import com.fasterxml.jackson.databind.ObjectMapper
+import dto.Request
 import java.io.DataInputStream
 import java.io.IOException
 import java.io.InputStream
