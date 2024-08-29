@@ -3,6 +3,7 @@ package com.ertools.communication
 import com.ertools.utils.Configuration
 import com.ertools.utils.Constance
 import dto.Message
+import dto.Response
 import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.ServerSocket
@@ -61,9 +62,9 @@ class CommunicationThread(
         }
     }
 
-    fun send(clients: List<Int>, message: Message) {
-        clients.forEach {
-            connections[it]?.send(message)
+    fun send(response: Response) {
+        response.receivers.forEach {
+            connections[it]?.send(response)
         }
     }
 
