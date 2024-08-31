@@ -2,7 +2,6 @@ package com.ertools.communication
 
 import com.ertools.utils.Configuration
 import com.ertools.utils.Constance
-import dto.Message
 import dto.Response
 import java.net.InetAddress
 import java.net.InetSocketAddress

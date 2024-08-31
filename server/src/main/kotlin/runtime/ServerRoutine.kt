@@ -2,15 +2,16 @@ package com.ertools.runtime
 
 import com.ertools.communication.CommunicationThread
 import com.ertools.communication.ConnectionListener
+import com.ertools.monitor.MonitorListener
 import com.ertools.monitor.MonitorThread
-import dto.Request
-import dto.Response
 import com.ertools.ui.ApplicationWindow
 import com.ertools.utils.Configuration
 import com.ertools.utils.Constance
 import com.ertools.utils.ObservableQueue
+import dto.Request
+import dto.Response
 
-class ServerRoutine: ConnectionListener {
+class ServerRoutine: ConnectionListener, MonitorListener {
     /** Connection service **/
     private lateinit var topicList: ArrayList<String>               /** Topics **/
     private lateinit var requestQueue: ObservableQueue<Request>     /*** KKO  ***/
@@ -19,7 +20,6 @@ class ServerRoutine: ConnectionListener {
     /** Threads **/
     private lateinit var communicationThread: CommunicationThread
     private lateinit var monitorThread: MonitorThread
-
 
     /*************/
     /**   API   **/
@@ -46,7 +46,7 @@ class ServerRoutine: ConnectionListener {
     private fun buildResources() {
         topicList = ArrayList()
         requestQueue = ObservableQueue()
-        responseQueue = ObservableQueue(::sendMessage)
+        responseQueue = ObservableQueue(::serviceResponse)
     }
 
     private fun runCommunication() {
@@ -61,8 +61,7 @@ class ServerRoutine: ConnectionListener {
 
     private fun runMonitor() {
         monitorThread = MonitorThread(
-            requestQueue,
-            responseQueue
+            requestQueue
         )
         monitorThread.start()
     }
@@ -72,10 +71,10 @@ class ServerRoutine: ConnectionListener {
         communicationThread.addListener(applicationWindow)
     }
 
-    private fun sendMessage() {
-
+    private fun serviceResponse(response: Response) {
+        communicationThread.send(response)
+        responseQueue.remove(response)
     }
-
 
 
     /**************************/
@@ -104,4 +103,15 @@ class ServerRoutine: ConnectionListener {
         if(Constance.DEBUG_MODE) println("ENGINE: Reply to ${response.receivers}: ${response.message}")
     }
 
+    /**************************/
+    /*** Monitor listening  ***/
+    /**************************/
+
+    override fun onRegisterTopic(topic: String) {
+        topicList.add(topic)
+    }
+
+    override fun onRegisterResponse(response: Response) {
+        responseQueue.add(response)
+    }
 }
