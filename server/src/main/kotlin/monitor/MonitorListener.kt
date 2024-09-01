@@ -3,9 +3,10 @@ package com.ertools.monitor
 import dto.Message
 
 interface MonitorListener {
-    fun onRegisterTopic(topic: String)
     fun onReply(port: Int, message: Message)
-    fun onProduce(topic: String, message: Message)
-    fun onSubscription(topic: String, port: Int)
-    fun onUnsubscription(topic: String, port: Int)
+    fun onPublish(topicName: String, message: Message): Boolean
+    fun onRegisterTopic(producerPort: Int, topicName: String): Boolean
+    fun onWithdrawTopic(producerPort: Int, topicName: String): Boolean
+    fun onSubscription(port: Int, topicName: String): Boolean
+    fun onUnsubscription(port: Int, topicName: String): Boolean
 }

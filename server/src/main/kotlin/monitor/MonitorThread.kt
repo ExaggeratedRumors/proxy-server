@@ -45,19 +45,19 @@ class MonitorThread(
             try {
                 message = deserialize(request)
             } catch (e: JsonProcessingException) {
-                replyRejection(request)
+                replyError(request.clientPort)
                 throw (Exception("ERROR: Incorrect JSON processing.", e))
             } catch (e: JsonMappingException) {
-                replyRejection(request)
+                replyError(request.clientPort)
                 throw (Exception("ERROR: JSON deserialization failed.", e))
             }
 
             /* Validate message */
             val validateResult = validate(message)
-            if(!validateResult) return replyRejection(request)
+            if(!validateResult) return replyError(request.clientPort)
 
             /* Choose response */
-
+            serviceMessage(message, request.clientPort)
         }
     }
 
@@ -80,15 +80,59 @@ class MonitorThread(
         return formattedTime
     }
 
+    private fun serviceMessage(message: Message, port: Int) {
+        when(message.type) {
+            MessageType.Register -> {
+                if(message.mode == MessageMode.Producer) return registerTopic(port, message)
+                if(message.mode == MessageMode.Subscriber) return subscribeTopic(port, message)
+            }
+            MessageType.Withdraw -> {
+                if(message.mode == MessageMode.Producer) return withdrawTopic(port, message)
+                if(message.mode == MessageMode.Subscriber) return unsubscribeTopic(port, message)
+            }
+            else -> {
+                return
+            }
+        }
+    }
+
     /***************************/
     /** Response to listeners **/
     /***************************/
 
-    private fun registerTopic(topic: String) {
-        listeners.forEach { it.onRegisterTopic(topic) }
+    private fun registerTopic(port: Int, message: Message) {
+        val success = listeners.map { it.onRegisterTopic(port, message.topic) }.contains(false)
+        when(success) {
+            false -> replyRejection(port, message, "topic is already exist")
+            true -> replyAcknowledge(port, message, "OK")
+        }
     }
 
-    private fun replyRejection(request: Request) {
+    private fun withdrawTopic(port: Int, message: Message) {
+        val success = listeners.map { it.onWithdrawTopic(port, message.topic) }.contains(false)
+        when(success) {
+            false -> replyRejection(port, message, "no topic registered")
+            true -> replyAcknowledge(port, message, "Producer withdrawed the topic")
+        }
+    }
+
+    private fun subscribeTopic(port: Int, message: Message) {
+        val success = listeners.map { it.onSubscription(port, message.topic) }.contains(false)
+        when(success) {
+            false -> replyRejection(port, message, "no such topic registered")
+            true -> replyAcknowledge(port, message, "OK")
+        }
+    }
+
+    private fun unsubscribeTopic(port: Int, message: Message) {
+        val success = listeners.map { it.onUnsubscription(port, message.topic) }.contains(false)
+        when(success) {
+            false -> replyRejection(port, message, "no topic registered")
+            true -> replyAcknowledge(port, message, "Subscription of the topic withdrawed")
+        }
+    }
+
+    private fun replyError(port: Int) {
         val payload = MessagePayload(
             timestampOfMessage = getTimestamp(),
             topicOfMessage = "logs",
@@ -104,6 +148,44 @@ class MonitorThread(
             payload = payload
         )
 
-        listeners.forEach { it.onReply(request.clientPort, responseMessage) }
+        listeners.forEach { it.onReply(port, responseMessage) }
+    }
+
+    private fun replyRejection(port: Int, message: Message, messageContent: String) {
+        val payload = MessagePayload(
+            timestampOfMessage = message.timestamp,
+            topicOfMessage = message.topic,
+            success = false,
+            message = messageContent
+        )
+        val responseMessage = Message(
+            type = MessageType.Reject,
+            id = Configuration.SERVER_ID,
+            topic = "logs",
+            timestamp = getTimestamp(),
+            mode = MessageMode.Producer,
+            payload = payload
+        )
+
+        listeners.forEach { it.onReply(port, responseMessage) }
+    }
+
+    private fun replyAcknowledge(port: Int, message: Message, messageContent: String) {
+        val payload = MessagePayload(
+            timestampOfMessage = message.timestamp,
+            topicOfMessage = message.topic,
+            success = true,
+            message = messageContent
+        )
+        val responseMessage = Message(
+            type = MessageType.Acknowledge,
+            id = Configuration.SERVER_ID,
+            topic = "logs",
+            timestamp = getTimestamp(),
+            mode = MessageMode.Producer,
+            payload = payload
+        )
+
+        listeners.forEach { it.onReply(port, responseMessage) }
     }
 }

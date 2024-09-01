@@ -11,10 +11,11 @@ import com.ertools.utils.ObservableQueue
 import dto.Message
 import dto.Request
 import dto.Response
+import dto.Topic
 
 class ServerRoutine: ConnectionListener, MonitorListener {
     /** Connection service **/
-    private lateinit var topics: MutableMap<String, MutableList<Int>>   /** Topics **/
+    private lateinit var topics: MutableList<Topic>   /** Topics **/
     private lateinit var requestQueue: ObservableQueue<Request>         /*** KKO  ***/
     private lateinit var responseQueue: ObservableQueue<Response>       /*** KKW  ***/
 
@@ -45,7 +46,7 @@ class ServerRoutine: ConnectionListener, MonitorListener {
     }
 
     private fun buildResources() {
-        topics = mutableMapOf()
+        topics = mutableListOf(Topic("logs", Configuration.LISTEN_PORT))
         requestQueue = ObservableQueue()
         responseQueue = ObservableQueue(::serviceResponse)
     }
@@ -88,6 +89,7 @@ class ServerRoutine: ConnectionListener, MonitorListener {
     }
 
     override fun onClientDisconnect(port: Int) {
+        topics.forEach { it.subscribers.remove(port) }
         if(Constance.DEBUG_MODE) println("ENGINE: $port has been disconnected.")
     }
 
@@ -109,10 +111,6 @@ class ServerRoutine: ConnectionListener, MonitorListener {
     /*** Monitor listening  ***/
     /**************************/
 
-    override fun onRegisterTopic(topic: String) {
-        topics[topic] = mutableListOf()
-    }
-
     override fun onReply(port: Int, message: Message) {
         responseQueue.add(Response(
             message = message,
@@ -120,19 +118,44 @@ class ServerRoutine: ConnectionListener, MonitorListener {
         ))
     }
 
-    override fun onProduce(topic: String, message: Message) {
-        if(topics[topic].isNullOrEmpty()) return
+    override fun onPublish(topicName: String, message: Message): Boolean {
+        val topic = topics.firstOrNull { it.topicName == topicName }
+        if(topic == null) return false
         responseQueue.add(Response(
             message = message,
-            receivers = topics[topic]!!.toList()
+            receivers = topic.subscribers
         ))
+        return true
     }
 
-    override fun onSubscription(topic: String, port: Int) {
-        topics[topic]?.add(port)
+    override fun onRegisterTopic(producerPort: Int, topicName: String): Boolean {
+        if(topics.firstOrNull { it.topicName == topicName } != null) return false
+        val newTopic = Topic(
+            topicName = topicName,
+            producer = producerPort
+        )
+        topics.add(newTopic)
+        return true
     }
 
-    override fun onUnsubscription(topic: String, port: Int) {
-        topics[topic]?.remove(port)
+    override fun onWithdrawTopic(producerPort: Int, topicName: String): Boolean {
+        val topic = topics.firstOrNull { it.topicName == topicName }
+        if(topic == null) return false
+        if(topic.producer != producerPort) return false
+        topics.remove(topic)
+        return true
+    }
+
+    override fun onSubscription(port: Int, topicName: String): Boolean {
+        val topic = topics.firstOrNull { it.topicName == topicName }
+        if(topic == null) return false
+        topic.subscribers.add(port)
+        return true
+    }
+
+    override fun onUnsubscription(port: Int, topicName: String): Boolean {
+        val topic = topics.firstOrNull { it.topicName == topicName }
+        if(topic == null) return false
+        return topic.subscribers.remove(port)
     }
 }
