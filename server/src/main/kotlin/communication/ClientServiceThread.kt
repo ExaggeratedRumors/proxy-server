@@ -50,17 +50,16 @@ class ClientServiceThread(
         }
     }
 
-    private fun recv(): Message? {
+    private fun recv(): String? {
         if(stopClient) throw IllegalStateException("ERROR: Client ${client.port} is stopped.")
         try {
             messageSize = reader.read(buffer)
             if (messageSize == -1) return null
 
             val rawMessage: String = buffer.copyOfRange(0, messageSize).toString(Charsets.UTF_8)
-            val message: Message = mapper.readValue(rawMessage, Message::class.java)
-            listeners.forEach { it.onMessageReceive(Request(message, client.port)) }
+            listeners.forEach { it.onMessageReceive(Request(rawMessage, client.port)) }
 
-            return message
+            return rawMessage
         } catch (e: Exception) {
             e.printStackTrace()
             throw e

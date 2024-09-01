@@ -8,14 +8,15 @@ import com.ertools.ui.ApplicationWindow
 import com.ertools.utils.Configuration
 import com.ertools.utils.Constance
 import com.ertools.utils.ObservableQueue
+import dto.Message
 import dto.Request
 import dto.Response
 
 class ServerRoutine: ConnectionListener, MonitorListener {
     /** Connection service **/
-    private lateinit var topicList: ArrayList<String>               /** Topics **/
-    private lateinit var requestQueue: ObservableQueue<Request>     /*** KKO  ***/
-    private lateinit var responseQueue: ObservableQueue<Response>   /*** KKW  ***/
+    private lateinit var topics: MutableMap<String, MutableList<Int>>   /** Topics **/
+    private lateinit var requestQueue: ObservableQueue<Request>         /*** KKO  ***/
+    private lateinit var responseQueue: ObservableQueue<Response>       /*** KKW  ***/
 
     /** Threads **/
     private lateinit var communicationThread: CommunicationThread
@@ -44,7 +45,7 @@ class ServerRoutine: ConnectionListener, MonitorListener {
     }
 
     private fun buildResources() {
-        topicList = ArrayList()
+        topics = mutableMapOf()
         requestQueue = ObservableQueue()
         responseQueue = ObservableQueue(::serviceResponse)
     }
@@ -63,6 +64,7 @@ class ServerRoutine: ConnectionListener, MonitorListener {
         monitorThread = MonitorThread(
             requestQueue
         )
+        monitorThread.addListener(this)
         monitorThread.start()
     }
 
@@ -95,7 +97,7 @@ class ServerRoutine: ConnectionListener, MonitorListener {
 
     override fun onMessageReceive(request: Request) {
         requestQueue.add(request)
-        if(Constance.DEBUG_MODE) println("ENGINE: Received from ${request.clientPort}: ${request.message}")
+        if(Constance.DEBUG_MODE) println("ENGINE: Received from ${request.clientPort}: ${request.serializedMessage}")
     }
 
     override fun onMessageSend(response: Response) {
@@ -108,10 +110,29 @@ class ServerRoutine: ConnectionListener, MonitorListener {
     /**************************/
 
     override fun onRegisterTopic(topic: String) {
-        topicList.add(topic)
+        topics[topic] = mutableListOf()
     }
 
-    override fun onRegisterResponse(response: Response) {
-        responseQueue.add(response)
+    override fun onReply(port: Int, message: Message) {
+        responseQueue.add(Response(
+            message = message,
+            receivers = listOf(port)
+        ))
+    }
+
+    override fun onProduce(topic: String, message: Message) {
+        if(topics[topic].isNullOrEmpty()) return
+        responseQueue.add(Response(
+            message = message,
+            receivers = topics[topic]!!.toList()
+        ))
+    }
+
+    override fun onSubscription(topic: String, port: Int) {
+        topics[topic]?.add(port)
+    }
+
+    override fun onUnsubscription(topic: String, port: Int) {
+        topics[topic]?.remove(port)
     }
 }

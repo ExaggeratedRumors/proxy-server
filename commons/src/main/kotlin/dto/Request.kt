@@ -1,6 +1,6 @@
 package dto
 
 data class Request (
-    val message: Message,
+    val serializedMessage: String,
     val clientPort: Int
 )
