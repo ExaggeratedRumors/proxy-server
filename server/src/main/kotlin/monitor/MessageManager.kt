@@ -1,5 +1,6 @@
-package com.ertools.communication
+package com.ertools.monitor
 
+import dto.Configuration
 import dto.Message
 
 interface MessageManager {
@@ -9,5 +10,6 @@ interface MessageManager {
     fun onWithdrawTopic(producerPort: Int, topicName: String): Boolean
     fun onSubscription(port: Int, topicName: String): Boolean
     fun onUnsubscription(port: Int, topicName: String): Boolean
-    fun onStatusRequest(): Map<String, String>
+    fun onStatusRequest(port: Int): Map<String, String>
+    fun onConfigRequest(port: Int): Configuration
 }

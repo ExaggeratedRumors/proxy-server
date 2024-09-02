@@ -1,6 +1,5 @@
 package com.ertools.monitor
 
-import com.ertools.communication.MessageManager
 import com.ertools.utils.Constance
 import com.ertools.utils.ObservableQueue
 import com.fasterxml.jackson.core.JsonProcessingException
@@ -150,20 +149,22 @@ class MonitorThread(
     }
 
     private fun replyConfiguration(port: Int) {
+        val configuration = messageManager.onConfigRequest(port)
+
         val responseMessage = Message(
             type = MessageType.Config,
             id = Configuration.SERVER_ID,
             topic = "logs",
             timestamp = getTimestamp(),
             mode = MessageMode.Producer,
-            payload = ConfigPayload(Configuration)
+            payload = ConfigPayload(configuration)
         )
 
         messageManager.onReply(port, responseMessage)
     }
 
     private fun replyStatus(port: Int) {
-        val status = messageManager.onStatusRequest()
+        val status = messageManager.onStatusRequest(port)
 
         val responseMessage = Message(
             type = MessageType.Status,

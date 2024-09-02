@@ -19,7 +19,6 @@ class ClientServiceThread(
     private var buffer: ByteArray = ByteArray(Configuration.SIZE_LIMIT)
     private val writer: ObjectOutputStream = ObjectOutputStream(client.getOutputStream())
     private val reader: ObjectInputStream = ObjectInputStream(client.getInputStream())
-    private val mapper: ObjectMapper = ObjectMapper()
 
     init {
         client.soTimeout = timeout
@@ -87,25 +86,4 @@ class ClientServiceThread(
             throw(e)
         }
     }
-
-
-/*    fun refuseConnection() {
-        writer.bufferedWriter().use {
-            //it.write(Utils.BUSY_STATEMENT)
-            it.flush()
-        }
-        listeners.forEach { it.onServerBusy(client.port) }
-        stopClient = true
-        client.close()
-    }*/
-
-
-
-    /*
-
-    private fun send() {
-        writer.write(buffer.copyOfRange(0, messageSize))
-        val message = buffer.copyOfRange(0, messageSize).toString(Charsets.UTF_8)
-        listener.onMessageSend(Response(message, listOf(client.port)))
-    }*/
 }

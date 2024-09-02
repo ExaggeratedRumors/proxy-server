@@ -2,9 +2,10 @@ package com.ertools.runtime
 
 import com.ertools.communication.CommunicationThread
 import com.ertools.communication.ConnectionListener
-import com.ertools.communication.MessageManager
+import com.ertools.monitor.MessageManager
 import com.ertools.monitor.MonitorThread
-import com.ertools.ui.ApplicationWindow
+import com.ertools.ui.ServerOutput
+import com.ertools.ui.ServerWindow
 import dto.Configuration
 import com.ertools.utils.Constance
 import com.ertools.utils.ObservableQueue
@@ -22,6 +23,7 @@ class ServerRoutine: ConnectionListener, MessageManager {
     /** Threads **/
     private lateinit var communicationThread: CommunicationThread
     private lateinit var monitorThread: MonitorThread
+    private lateinit var serverOutput: ServerOutput
 
     /*************/
     /**   API   **/
@@ -70,8 +72,8 @@ class ServerRoutine: ConnectionListener, MessageManager {
     }
 
     private fun runUserInterface() {
-        val applicationWindow = ApplicationWindow(::shutdown)
-        communicationThread.addListener(applicationWindow)
+        val applicationWindow = ServerWindow(::shutdown)
+        serverOutput = applicationWindow
     }
 
     private fun serviceResponse(response: Response) {
@@ -85,21 +87,25 @@ class ServerRoutine: ConnectionListener, MessageManager {
     /**************************/
 
     override fun onClientAccept(port: Int, ip: String) {
+        serverOutput.updateLog("#ACCEPT: $ip:$port)")
         if(Constance.DEBUG_MODE) println("ENGINE: $port ($ip) joined to server.")
     }
 
     override fun onClientDisconnect(port: Int) {
         topics.forEach { it.subscribers.remove(port) }
+        serverOutput.updateLog("#DISCONNECT: $port)")
+        serverOutput.updateStatus(topics)
         if(Constance.DEBUG_MODE) println("ENGINE: $port has been disconnected.")
     }
 
     override fun onMessageReceive(request: Request) {
         requestQueue.add(request)
+        serverOutput.updateLog("#RECEIVED: from ${request.clientPort}")
         if(Constance.DEBUG_MODE) println("ENGINE: Received from ${request.clientPort}: ${request.serializedMessage}")
     }
 
     override fun onMessageSend(response: Response) {
-        responseQueue.add(response)
+        serverOutput.updateLog("#SEND: to ${response.receivers}")
         if(Constance.DEBUG_MODE) println("ENGINE: Reply to ${response.receivers}: ${response.message}")
     }
 
@@ -112,6 +118,7 @@ class ServerRoutine: ConnectionListener, MessageManager {
             message = message,
             receivers = listOf(port)
         ))
+        serverOutput.updateLog("#QUEUE REPLY: to $port")
     }
 
     override fun onPublish(topicName: String, message: Message): Int {
@@ -123,6 +130,7 @@ class ServerRoutine: ConnectionListener, MessageManager {
             message = message,
             receivers = receivers
         ))
+        serverOutput.updateLog("#QUEUE PUBLISH: to $receivers")
         return receivers.size
     }
 
@@ -134,6 +142,8 @@ class ServerRoutine: ConnectionListener, MessageManager {
             producerId = producerId
         )
         topics.add(newTopic)
+        serverOutput.updateLog("#REGISTER: topic $topicName [$producerId: $producerPort]")
+        serverOutput.updateStatus(topics)
         return true
     }
 
@@ -142,6 +152,8 @@ class ServerRoutine: ConnectionListener, MessageManager {
         if(topic == null) return false
         if(topic.producerPort != producerPort) return false
         topics.remove(topic)
+        serverOutput.updateLog("#WITHDRAW: topic $topicName")
+        serverOutput.updateStatus(topics)
         return true
     }
 
@@ -149,16 +161,27 @@ class ServerRoutine: ConnectionListener, MessageManager {
         val topic = topics.firstOrNull { it.topicName == topicName }
         if(topic == null) return false
         topic.subscribers.add(port)
+        serverOutput.updateLog("#REGISTER: subscription to $topicName [$port]")
+        serverOutput.updateStatus(topics)
         return true
     }
 
     override fun onUnsubscription(port: Int, topicName: String): Boolean {
         val topic = topics.firstOrNull { it.topicName == topicName }
         if(topic == null) return false
-        return topic.subscribers.remove(port)
+        if(!topic.subscribers.remove(port)) return false
+        serverOutput.updateLog("#WITHDRAW: subscription $topicName [$port]")
+        serverOutput.updateStatus(topics)
+        return true
     }
 
-    override fun onStatusRequest(): Map<String, String> {
+    override fun onStatusRequest(port: Int): Map<String, String> {
+        serverOutput.updateLog("#STATUS: $port")
         return topics.associate { it.topicName to it.producerId }
+    }
+
+    override fun onConfigRequest(port: Int): Configuration {
+        serverOutput.updateLog("#CONFIG: $port")
+        return Configuration
     }
 }
