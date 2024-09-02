@@ -1,8 +1,8 @@
-package com.ertools.monitor
+package com.ertools.communication
 
 import dto.Message
 
-interface MonitorListener {
+interface MessageManager {
     fun onReply(port: Int, message: Message)
     fun onPublish(topicName: String, message: Message): Int
     fun onRegisterTopic(producerPort: Int, topicName: String, producerId: String): Boolean

@@ -2,7 +2,7 @@ package com.ertools.runtime
 
 import com.ertools.communication.CommunicationThread
 import com.ertools.communication.ConnectionListener
-import com.ertools.monitor.MonitorListener
+import com.ertools.communication.MessageManager
 import com.ertools.monitor.MonitorThread
 import com.ertools.ui.ApplicationWindow
 import dto.Configuration
@@ -13,7 +13,7 @@ import dto.Request
 import dto.Response
 import dto.Topic
 
-class ServerRoutine: ConnectionListener, MonitorListener {
+class ServerRoutine: ConnectionListener, MessageManager {
     /** Connection service **/
     private lateinit var topics: MutableList<Topic>   /** Topics **/
     private lateinit var requestQueue: ObservableQueue<Request>         /*** KKO  ***/
@@ -63,9 +63,9 @@ class ServerRoutine: ConnectionListener, MonitorListener {
 
     private fun runMonitor() {
         monitorThread = MonitorThread(
-            requestQueue
+            requestQueue,
+            this
         )
-        monitorThread.addListener(this)
         monitorThread.start()
     }
 
@@ -91,10 +91,6 @@ class ServerRoutine: ConnectionListener, MonitorListener {
     override fun onClientDisconnect(port: Int) {
         topics.forEach { it.subscribers.remove(port) }
         if(Constance.DEBUG_MODE) println("ENGINE: $port has been disconnected.")
-    }
-
-    override fun onServerBusy(port: Int) {
-        if(Constance.DEBUG_MODE) println("ENGINE: $port was rejected: server is busy.")
     }
 
     override fun onMessageReceive(request: Request) {

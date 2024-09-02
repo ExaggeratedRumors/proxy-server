@@ -5,5 +5,5 @@ class ClientInfo (
     val port: Int,
     val ip: String
 ) {
-    val messages: ArrayList<Message> = ArrayList()
+    val messages: ArrayList<String> = ArrayList()
 }

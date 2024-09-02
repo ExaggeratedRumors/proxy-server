@@ -1,30 +1,21 @@
 package com.ertools.monitor
 
-import dto.Configuration
+import com.ertools.communication.MessageManager
 import com.ertools.utils.Constance
 import com.ertools.utils.ObservableQueue
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import dto.*
-import jdk.jshell.Snippet.Status
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 class MonitorThread(
-    private val requestQueue: ObservableQueue<Request>
+    private val requestQueue: ObservableQueue<Request>,
+    private val messageManager: MessageManager
 ): Thread() {
     private var isRunning: Boolean = false
-    private val listeners: MutableList<MonitorListener> = mutableListOf()
-
-    /****************/
-    /** Public API **/
-    /****************/
-
-    fun addListener(listener: MonitorListener) {
-        listeners.add(listener)
-    }
 
     /*********************/
     /** Private service **/
@@ -107,7 +98,7 @@ class MonitorThread(
     /***************************/
 
     private fun registerTopic(port: Int, message: Message) {
-        val success = listeners.map { it.onRegisterTopic(port, message.topic, message.id) }.contains(false)
+        val success = messageManager.onRegisterTopic(port, message.topic, message.id)
         when(success) {
             false -> replyRejection(port, message, "topic is already exist")
             true -> replyAcknowledge(port, message, "OK")
@@ -115,7 +106,7 @@ class MonitorThread(
     }
 
     private fun withdrawTopic(port: Int, message: Message) {
-        val success = listeners.map { it.onWithdrawTopic(port, message.topic) }.contains(false)
+        val success = messageManager.onWithdrawTopic(port, message.topic)
         when(success) {
             false -> replyRejection(port, message, "no topic registered")
             true -> replyAcknowledge(port, message, "Producer withdrawed the topic")
@@ -123,7 +114,7 @@ class MonitorThread(
     }
 
     private fun subscribeTopic(port: Int, message: Message) {
-        val success = listeners.map { it.onSubscription(port, message.topic) }.contains(false)
+        val success = messageManager.onSubscription(port, message.topic)
         when(success) {
             false -> replyRejection(port, message, "no such topic registered")
             true -> replyAcknowledge(port, message, "OK")
@@ -131,7 +122,7 @@ class MonitorThread(
     }
 
     private fun unsubscribeTopic(port: Int, message: Message) {
-        val success = listeners.map { it.onUnsubscription(port, message.topic) }.contains(false)
+        val success = messageManager.onUnsubscription(port, message.topic)
         when(success) {
             false -> replyRejection(port, message, "no topic registered")
             true -> replyAcknowledge(port, message, "Subscription of the topic withdrawed")
@@ -150,9 +141,7 @@ class MonitorThread(
 
         var receiversAmount = 0
         try {
-            for (listener in listeners) {
-                receiversAmount += listener.onPublish(message.topic, responseMessage)
-            }
+            receiversAmount += messageManager.onPublish(message.topic, responseMessage)
             if(receiversAmount == 0) replyRejection(port, message, "Topic has not any listeners")
             else replyAcknowledge(port, message, "OK")
         } catch (e: IllegalStateException) {
@@ -170,11 +159,11 @@ class MonitorThread(
             payload = ConfigPayload(Configuration)
         )
 
-        listeners.forEach { it.onReply(port, responseMessage) }
+        messageManager.onReply(port, responseMessage)
     }
 
     private fun replyStatus(port: Int) {
-        val status = listeners.map { it.onStatusRequest() }.firstNotNullOf { it }
+        val status = messageManager.onStatusRequest()
 
         val responseMessage = Message(
             type = MessageType.Status,
@@ -185,7 +174,7 @@ class MonitorThread(
             payload = StatusPayload(status)
         )
 
-        listeners.forEach { it.onReply(port, responseMessage) }
+        messageManager.onReply(port, responseMessage)
     }
 
     private fun replyError(port: Int) {
@@ -204,7 +193,7 @@ class MonitorThread(
             payload = payload
         )
 
-        listeners.forEach { it.onReply(port, responseMessage) }
+        messageManager.onReply(port, responseMessage)
     }
 
     private fun replyRejection(port: Int, message: Message, messageContent: String) {
@@ -223,7 +212,7 @@ class MonitorThread(
             payload = payload
         )
 
-        listeners.forEach { it.onReply(port, responseMessage) }
+        messageManager.onReply(port, responseMessage)
     }
 
     private fun replyAcknowledge(port: Int, message: Message, messageContent: String) {
@@ -242,6 +231,6 @@ class MonitorThread(
             payload = payload
         )
 
-        listeners.forEach { it.onReply(port, responseMessage) }
+        messageManager.onReply(port, responseMessage)
     }
 }

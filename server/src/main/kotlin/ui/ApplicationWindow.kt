@@ -26,7 +26,6 @@ class ApplicationWindow(
     private val clients : ArrayList<ClientInfo> = ArrayList()
     private var clientsCounter = 0
 
-
     init {
         /** UI Layout **/
         title = "Server"
@@ -102,22 +101,12 @@ class ApplicationWindow(
         revalidateClientsInfo()
     }
 
-    override fun onServerBusy(port: Int) {
-        val client = clients.firstOrNull { it.port == port }
-        if(client == null) return
-
-        notifyMessage("#${client.id} was rejected: server is busy.")
-
-        clients.removeIf { it.port == port }
-        revalidateClientsInfo()
-    }
-
     override fun onMessageReceive(request: Request) {
         val client = clients.firstOrNull { it.port == request.clientPort }
         if(client == null) return
-        client.messages.add(request.message)
+        client.messages.add(request.serializedMessage)
 
-        notifyMessage("#${client.id} Received $size ${request.message}")
+        notifyMessage("#${client.id} Received $size ${request.serializedMessage}")
     }
 
     override fun onMessageSend(response: Response) {
