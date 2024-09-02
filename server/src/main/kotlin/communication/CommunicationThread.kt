@@ -1,6 +1,6 @@
 package com.ertools.communication
 
-import com.ertools.utils.Configuration
+import dto.Configuration
 import com.ertools.utils.Constance
 import dto.Response
 import java.net.InetAddress

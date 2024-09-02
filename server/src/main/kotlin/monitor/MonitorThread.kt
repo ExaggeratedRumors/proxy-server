@@ -1,12 +1,13 @@
 package com.ertools.monitor
 
-import com.ertools.utils.Configuration
+import dto.Configuration
 import com.ertools.utils.Constance
 import com.ertools.utils.ObservableQueue
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import dto.*
+import jdk.jshell.Snippet.Status
 import java.time.Instant
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -90,6 +91,11 @@ class MonitorThread(
                 if(message.mode == MessageMode.Producer) return withdrawTopic(port, message)
                 if(message.mode == MessageMode.Subscriber) return unsubscribeTopic(port, message)
             }
+            MessageType.Message, MessageType.File -> {
+                if(message.mode == MessageMode.Producer) return publishMessage(port, message)
+            }
+            MessageType.Config -> return replyConfiguration(port)
+            MessageType.Status -> return replyStatus(port)
             else -> {
                 return
             }
@@ -101,7 +107,7 @@ class MonitorThread(
     /***************************/
 
     private fun registerTopic(port: Int, message: Message) {
-        val success = listeners.map { it.onRegisterTopic(port, message.topic) }.contains(false)
+        val success = listeners.map { it.onRegisterTopic(port, message.topic, message.id) }.contains(false)
         when(success) {
             false -> replyRejection(port, message, "topic is already exist")
             true -> replyAcknowledge(port, message, "OK")
@@ -130,6 +136,56 @@ class MonitorThread(
             false -> replyRejection(port, message, "no topic registered")
             true -> replyAcknowledge(port, message, "Subscription of the topic withdrawed")
         }
+    }
+
+    private fun publishMessage(port: Int, message: Message) {
+        val responseMessage = Message(
+            type = message.type,
+            id = Configuration.SERVER_ID,
+            topic = message.topic,
+            timestamp = getTimestamp(),
+            mode = MessageMode.Producer,
+            payload = message.payload as MessagePayload
+        )
+
+        var receiversAmount = 0
+        try {
+            for (listener in listeners) {
+                receiversAmount += listener.onPublish(message.topic, responseMessage)
+            }
+            if(receiversAmount == 0) replyRejection(port, message, "Topic has not any listeners")
+            else replyAcknowledge(port, message, "OK")
+        } catch (e: IllegalStateException) {
+            replyRejection(port, message, "No topic registered")
+        }
+    }
+
+    private fun replyConfiguration(port: Int) {
+        val responseMessage = Message(
+            type = MessageType.Config,
+            id = Configuration.SERVER_ID,
+            topic = "logs",
+            timestamp = getTimestamp(),
+            mode = MessageMode.Producer,
+            payload = ConfigPayload(Configuration)
+        )
+
+        listeners.forEach { it.onReply(port, responseMessage) }
+    }
+
+    private fun replyStatus(port: Int) {
+        val status = listeners.map { it.onStatusRequest() }.firstNotNullOf { it }
+
+        val responseMessage = Message(
+            type = MessageType.Status,
+            id = Configuration.SERVER_ID,
+            topic = "logs",
+            timestamp = getTimestamp(),
+            mode = MessageMode.Producer,
+            payload = StatusPayload(status)
+        )
+
+        listeners.forEach { it.onReply(port, responseMessage) }
     }
 
     private fun replyError(port: Int) {

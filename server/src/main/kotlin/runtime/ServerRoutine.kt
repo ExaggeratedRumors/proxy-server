@@ -5,7 +5,7 @@ import com.ertools.communication.ConnectionListener
 import com.ertools.monitor.MonitorListener
 import com.ertools.monitor.MonitorThread
 import com.ertools.ui.ApplicationWindow
-import com.ertools.utils.Configuration
+import dto.Configuration
 import com.ertools.utils.Constance
 import com.ertools.utils.ObservableQueue
 import dto.Message
@@ -46,7 +46,7 @@ class ServerRoutine: ConnectionListener, MonitorListener {
     }
 
     private fun buildResources() {
-        topics = mutableListOf(Topic("logs", Configuration.LISTEN_PORT))
+        topics = mutableListOf(Topic("logs", Configuration.LISTEN_PORT, Configuration.SERVER_ID))
         requestQueue = ObservableQueue()
         responseQueue = ObservableQueue(::serviceResponse)
     }
@@ -118,21 +118,24 @@ class ServerRoutine: ConnectionListener, MonitorListener {
         ))
     }
 
-    override fun onPublish(topicName: String, message: Message): Boolean {
+    override fun onPublish(topicName: String, message: Message): Int {
         val topic = topics.firstOrNull { it.topicName == topicName }
-        if(topic == null) return false
+        if(topic == null) throw IllegalStateException("No topic $topicName")
+        val receivers = topic.subscribers
+        if(receivers.size == 0) return 0
         responseQueue.add(Response(
             message = message,
-            receivers = topic.subscribers
+            receivers = receivers
         ))
-        return true
+        return receivers.size
     }
 
-    override fun onRegisterTopic(producerPort: Int, topicName: String): Boolean {
+    override fun onRegisterTopic(producerPort: Int, topicName: String, producerId: String): Boolean {
         if(topics.firstOrNull { it.topicName == topicName } != null) return false
         val newTopic = Topic(
             topicName = topicName,
-            producer = producerPort
+            producerPort = producerPort,
+            producerId = producerId
         )
         topics.add(newTopic)
         return true
@@ -141,7 +144,7 @@ class ServerRoutine: ConnectionListener, MonitorListener {
     override fun onWithdrawTopic(producerPort: Int, topicName: String): Boolean {
         val topic = topics.firstOrNull { it.topicName == topicName }
         if(topic == null) return false
-        if(topic.producer != producerPort) return false
+        if(topic.producerPort != producerPort) return false
         topics.remove(topic)
         return true
     }
@@ -157,5 +160,9 @@ class ServerRoutine: ConnectionListener, MonitorListener {
         val topic = topics.firstOrNull { it.topicName == topicName }
         if(topic == null) return false
         return topic.subscribers.remove(port)
+    }
+
+    override fun onStatusRequest(): Map<String, String> {
+        return topics.associate { it.topicName to it.producerId }
     }
 }

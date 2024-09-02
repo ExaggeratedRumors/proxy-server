@@ -2,6 +2,7 @@ package dto
 
 data class Topic(
     val topicName: String,
-    val producer: Int,
+    val producerPort: Int,
+    val producerId: String,
     val subscribers: MutableList<Int> = mutableListOf()
 )

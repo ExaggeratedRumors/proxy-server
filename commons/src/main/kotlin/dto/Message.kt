@@ -6,5 +6,5 @@ data class Message (
     val topic: String,
     val mode: MessageMode?,
     val timestamp: String, /* ISO 8601 */
-    val payload: MessagePayload?
+    val payload: Payload?
 )

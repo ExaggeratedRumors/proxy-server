@@ -1,9 +1,11 @@
-package com.ertools.utils
+package dto
 
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
+import java.io.Serializable
 
-object Configuration {
+object Configuration : Serializable {
+    private fun readResolve(): Any = Configuration
     lateinit var SERVER_ID: String
         private set
     var LISTEN_PORT: Int = 8080
@@ -27,15 +29,13 @@ object Configuration {
             SIZE_LIMIT = serverConfig.getInt("size_limit")
             LISTEN_ADDRESSES = serverConfig.getStringList("listen_addresses")
             ALLOWED_IP_ADDRESSES = serverConfig.getStringList("allowed_ip_addresses")
-            if(Constance.DEBUG_MODE) {
-                println("#### DEBUG CONFIG:\n" +
-                        "Server ID: $SERVER_ID\n" +
-                        "Listen port: $LISTEN_PORT\n" +
-                        "TimeOut: $TIMEOUT\n" +
-                        "Listen addresses: $LISTEN_ADDRESSES\n" +
-                        "Size limit: $SIZE_LIMIT\n" +
-                        "Allowed IP addresses: $ALLOWED_IP_ADDRESSES")
-            }
+            println("#### DEBUG CONFIG:\n" +
+                    "Server ID: $SERVER_ID\n" +
+                    "Listen port: $LISTEN_PORT\n" +
+                    "TimeOut: $TIMEOUT\n" +
+                    "Listen addresses: $LISTEN_ADDRESSES\n" +
+                    "Size limit: $SIZE_LIMIT\n" +
+                    "Allowed IP addresses: $ALLOWED_IP_ADDRESSES")
         } catch (e: Exception) {
             e.printStackTrace()
             error("Configuration: Content of application.conf file is not valid.")
