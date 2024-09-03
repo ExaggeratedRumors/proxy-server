@@ -4,10 +4,12 @@ object ClientUtils {
     /** Debugging **/
     const val DEBUG_MODE = true
 
+    /** Threads **/
+    const val LISTENING_THREAD_SLEEP = 100L
+
     /** Connection **/
     const val DEFAULT_PORT = 8080
     const val DEFAULT_IP = "localhost"
-    const val MAX_BUFFER_SIZE = 4096
 
     /** UI **/
     const val WINDOW_WIDTH = 480

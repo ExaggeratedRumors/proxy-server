@@ -1,7 +1,5 @@
 package dto
 
-import javax.xml.crypto.Data
-
 interface Payload
 
 data class MessagePayload(
@@ -17,4 +15,9 @@ data class ConfigPayload(
 
 data class StatusPayload(
     val data: Map<String, String>
+) : Payload
+
+data class FilePayload(
+    val filename: String,
+    val data: String
 ) : Payload

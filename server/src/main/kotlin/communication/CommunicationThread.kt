@@ -51,7 +51,6 @@ class CommunicationThread(
                     } catch (e: SocketTimeoutException) {
                         continue
                     } catch (e: Exception) {
-                        e.printStackTrace()
                         break
                     }
                     if (Constance.DEBUG_MODE) println("ERROR: Socket timeout for $ip")

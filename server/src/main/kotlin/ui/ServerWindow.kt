@@ -52,8 +52,8 @@ class ServerWindow(
         isVisible = true
 
         /** UI listeners **/
-        addKeyListener(object : java.awt.event.KeyAdapter() {
-            override fun keyTyped(e: KeyEvent) {
+        logArea.addKeyListener(object : java.awt.event.KeyAdapter() {
+            override fun keyPressed(e: KeyEvent) {
                 val character = e.keyChar
                 if(character != 'q') return
                 shutdownCallback.invoke()
