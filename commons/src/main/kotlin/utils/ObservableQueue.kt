@@ -1,4 +1,4 @@
-package com.ertools.utils
+package utils
 
 import java.util.*
 

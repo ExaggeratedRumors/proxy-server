@@ -1,5 +1,6 @@
 package com.ertools.ui
 
+import com.ertools.utils.Constance
 import dto.Configuration
 import dto.Topic
 import java.awt.BorderLayout
@@ -16,8 +17,8 @@ class ServerWindow(
     private val shutdownCallback: () -> Unit
 ): JFrame(), ServerOutput {
 
-    private val height = 320
-    private val width = 480
+    private val height = Constance.WINDOW_HEIGHT
+    private val width = Constance.WINDOW_WIDTH
     private val statusArea = JTextArea("Wait for clients...")
     private val logArea = JTextArea("Server started. Press Q to shut down.")
     private val logScroll = JScrollPane(logArea)
@@ -34,7 +35,7 @@ class ServerWindow(
         logArea.lineWrap = true
         logArea.wrapStyleWord = true
         logArea.isEditable = false
-        logScroll.preferredSize = Dimension((width * 0.8).toInt(), height)
+        logScroll.preferredSize = Dimension((width * Constance.LOG_PANE_RATIO).toInt(), height)
         add(logScroll, BorderLayout.WEST)
 
         /** Status area **/
@@ -43,7 +44,7 @@ class ServerWindow(
         statusArea.isEditable = false
         statusArea.margin = java.awt.Insets((height * 0.1).toInt(), 0, 0, 0)
         val statusScroll = JScrollPane(statusArea)
-        statusScroll.preferredSize = Dimension((width * 0.2).toInt(), height)
+        statusScroll.preferredSize = Dimension((width * Constance.STATUS_PANE_RATIO).toInt(), height)
         add(statusScroll, BorderLayout.EAST)
 
         pack()

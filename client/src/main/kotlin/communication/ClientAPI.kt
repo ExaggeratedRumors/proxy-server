@@ -6,7 +6,7 @@ import java.io.File
 
 
 interface ClientAPI {
-    fun start(serverIP: String, serverPort: Int, clientID: Int)
+    fun start(serverIP: String, serverPort: Int, clientID: String)
     fun isConnected(): Boolean
     fun getStatus(): String
     fun getServerStatus(callback: (status: String) -> Unit)

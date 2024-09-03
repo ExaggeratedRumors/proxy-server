@@ -1,20 +1,19 @@
 package com.ertools.monitor
 
+import utils.TimeConverter
 import com.ertools.utils.Constance
-import com.ertools.utils.ObservableQueue
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonMappingException
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import dto.*
-import java.time.Instant
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
+import utils.ObservableQueue
 
 class MonitorThread(
     private val requestQueue: ObservableQueue<Request>,
     private val messageManager: MessageManager
 ): Thread() {
     private var isRunning: Boolean = false
+    private var timeConverter: TimeConverter = TimeConverter()
 
     /*********************/
     /** Private service **/
@@ -61,14 +60,6 @@ class MonitorThread(
         if(message.type == MessageType.Acknowledge && message.payload == null) return false
         if(message.type == MessageType.Register && message.mode != MessageMode.Producer) return false
         return true
-    }
-
-    private fun getTimestamp(): String {
-        val currentTime = Instant.now()
-        val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-            .withZone(ZoneOffset.UTC)
-        val formattedTime = formatter.format(currentTime)
-        return formattedTime
     }
 
     private fun serviceMessage(message: Message, port: Int) {
@@ -133,7 +124,7 @@ class MonitorThread(
             type = message.type,
             id = Configuration.SERVER_ID,
             topic = message.topic,
-            timestamp = getTimestamp(),
+            timestamp = timeConverter.getTimestamp(),
             mode = MessageMode.Producer,
             payload = message.payload as MessagePayload
         )
@@ -155,7 +146,7 @@ class MonitorThread(
             type = MessageType.Config,
             id = Configuration.SERVER_ID,
             topic = "logs",
-            timestamp = getTimestamp(),
+            timestamp = timeConverter.getTimestamp(),
             mode = MessageMode.Producer,
             payload = ConfigPayload(configuration)
         )
@@ -170,7 +161,7 @@ class MonitorThread(
             type = MessageType.Status,
             id = Configuration.SERVER_ID,
             topic = "logs",
-            timestamp = getTimestamp(),
+            timestamp = timeConverter.getTimestamp(),
             mode = MessageMode.Producer,
             payload = StatusPayload(status)
         )
@@ -180,7 +171,7 @@ class MonitorThread(
 
     private fun replyError(port: Int) {
         val payload = MessagePayload(
-            timestampOfMessage = getTimestamp(),
+            timestampOfMessage = timeConverter.getTimestamp(),
             topicOfMessage = "logs",
             success = false,
             message = "The message is unpleasant."
@@ -189,7 +180,7 @@ class MonitorThread(
             type = MessageType.Reject,
             id = Configuration.SERVER_ID,
             topic = "logs",
-            timestamp = getTimestamp(),
+            timestamp = timeConverter.getTimestamp(),
             mode = MessageMode.Producer,
             payload = payload
         )
@@ -208,7 +199,7 @@ class MonitorThread(
             type = MessageType.Reject,
             id = Configuration.SERVER_ID,
             topic = "logs",
-            timestamp = getTimestamp(),
+            timestamp = timeConverter.getTimestamp(),
             mode = MessageMode.Producer,
             payload = payload
         )
@@ -227,7 +218,7 @@ class MonitorThread(
             type = MessageType.Acknowledge,
             id = Configuration.SERVER_ID,
             topic = "logs",
-            timestamp = getTimestamp(),
+            timestamp = timeConverter.getTimestamp(),
             mode = MessageMode.Producer,
             payload = payload
         )

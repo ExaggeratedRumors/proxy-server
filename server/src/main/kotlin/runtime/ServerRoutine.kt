@@ -8,7 +8,7 @@ import com.ertools.ui.ServerOutput
 import com.ertools.ui.ServerWindow
 import dto.Configuration
 import com.ertools.utils.Constance
-import com.ertools.utils.ObservableQueue
+import utils.ObservableQueue
 import dto.Message
 import dto.Request
 import dto.Response
@@ -17,8 +17,11 @@ import dto.Topic
 class ServerRoutine: ConnectionListener, MessageManager {
     /** Connection service **/
     private lateinit var topics: MutableList<Topic>   /** Topics **/
-    private lateinit var requestQueue: ObservableQueue<Request>         /*** KKO  ***/
-    private lateinit var responseQueue: ObservableQueue<Response>       /*** KKW  ***/
+    private lateinit var requestQueue: ObservableQueue<Request>
+
+    /*** KKO  ***/
+    private lateinit var responseQueue: ObservableQueue<Response>
+    /*** KKW  ***/
 
     /** Threads **/
     private lateinit var communicationThread: CommunicationThread
