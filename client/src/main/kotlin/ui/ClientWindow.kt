@@ -159,8 +159,8 @@ class ClientWindow(private val connection: ClientConnection) : JFrame() {
         val getServerLogsButton = JButton("Get server logs")
         getServerLogsButton.addActionListener {
             connection.getServerLogs { info, success ->
-                if(success) notifyMessage("SUCCESS: $info")
-                else notifyMessage("FAILURE: $info")
+                if(success) notifyMessage("#SUCCESS: $info")
+                else notifyMessage("#FAILURE: $info")
             }
         }
         panelGbc.gridx = 0
@@ -243,7 +243,8 @@ class ClientWindow(private val connection: ClientConnection) : JFrame() {
         val createSubscriberButton = JButton("Create subscriber")
         createSubscriberButton.addActionListener {
             connection.createSubscriber(createSubscriberTopic.text) { message ->
-                notifyMessage("#CREATE SUBSCRIBER: $message")
+                val messageContent = (message.payload as MessagePayload).message
+                notifyMessage("#MESSAGE: $messageContent [topic: ${message.topic}")
             }
         }
         panelGbc.gridx = 0

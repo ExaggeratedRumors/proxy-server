@@ -164,8 +164,7 @@ class ClientConnection : Thread(), ClientAPI {
 
     override fun getStatus(): String {
         if(!this.isInitialized) throw IllegalStateException("ERROR: Connection has not been initialized.")
-        val communicationData = Pair(topics, subscriptions)
-        val status = mapper.writeValueAsString(communicationData)
+        val status = mapOf("topics" to topics, "subscriptions" to subscriptions)
         if(ClientUtils.DEBUG_MODE) println("ENGINE: getStatus [$status].")
         return mapper.writeValueAsString(status)
     }
@@ -187,9 +186,9 @@ class ClientConnection : Thread(), ClientAPI {
     override fun getServerLogs(callback: (info: String, success: Boolean) -> Unit) {
         if(!this.isInitialized) throw IllegalStateException("ERROR: Connection has not been initialized.")
         val nestedCallback = { message: Message ->
-            if(message.type == MessageType.Acknowledge || message.type == MessageType.Reject) {
+            if(message.type in listOf(MessageType.Acknowledge, MessageType.Reject) && message.payload != null) {
                 val payload = message.payload as MessagePayload
-                val responseTimestamp = message.timestamp
+                val responseTimestamp = payload.timestampOfMessage
                 val request = sentMessages.firstOrNull {
                     timeConverter.getTimestampDiffMs(it.timestamp, responseTimestamp) == 0L
                 }

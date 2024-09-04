@@ -92,6 +92,7 @@ class ServerRoutine: ConnectionListener, MessageManager {
 
     override fun onClientDisconnect(port: Int) {
         topics.forEach { it.subscribers.removeIf { client-> client.port == port} }
+        topics.removeIf { it.producer?.port == port }
         serverOutput.updateLog("#DISCONNECT: $port)")
         serverOutput.updateStatus(topics)
         if(Constance.DEBUG_MODE) println("ENGINE: $port has been disconnected.")
@@ -150,7 +151,7 @@ class ServerRoutine: ConnectionListener, MessageManager {
     override fun onWithdrawTopic(producer: ClientInfo, topicName: String): Boolean {
         val topic = topics.firstOrNull { it.topicName == topicName }
         if(topic == null) return false
-        if(topic.producer != producer) return false
+        if(topic.producer?.id != producer.id) return false
         topics.remove(topic)
         serverOutput.updateLog("#WITHDRAW: topic $topicName")
         serverOutput.updateStatus(topics)

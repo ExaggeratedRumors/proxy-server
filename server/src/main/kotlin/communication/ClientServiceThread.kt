@@ -7,6 +7,7 @@ import dto.Request
 import dto.Response
 import java.io.*
 import java.net.Socket
+import java.net.SocketException
 import java.net.SocketTimeoutException
 
 class ClientServiceThread(
@@ -30,16 +31,19 @@ class ClientServiceThread(
                 sleep(Constance.CONNECTION_THREAD_SLEEP)
                 recv() ?: continue
             } catch (e: SocketTimeoutException) {
-                e.printStackTrace()
-                if (Constance.DEBUG_MODE) error("ENGINE: Socket timeout ${client.inetAddress.hostAddress}")
+                shutdown()
+                if (Constance.DEBUG_MODE) println("ENGINE: Socket timeout ${client.inetAddress.hostAddress}")
+            } catch (e: SocketException) {
+                shutdown()
+                if (Constance.DEBUG_MODE) println("ENGINE: Socket disconnected ${client.inetAddress.hostAddress}")
             } catch (e: OutOfMemoryError) {
                 shutdown()
                 e.printStackTrace()
-                if (Constance.DEBUG_MODE) error("ERROR: No enough memory to allocate received message.")
+                if (Constance.DEBUG_MODE) println("ERROR: No enough memory to allocate received message.")
             } catch (e: IOException) {
                 shutdown()
                 e.printStackTrace()
-                if (Constance.DEBUG_MODE) error("ERROR: IO error occurs.")
+                if (Constance.DEBUG_MODE) println("ERROR: IO error occurs.")
             } catch (e: Exception) {
                 shutdown()
                 e.printStackTrace()

@@ -37,9 +37,11 @@ class MonitorThread(
                 message = deserialize(request)
             } catch (e: JsonProcessingException) {
                 replyError(request.client)
+                e.printStackTrace()
                 throw (Exception("ERROR: Incorrect JSON processing.", e))
             } catch (e: JsonMappingException) {
                 replyError(request.client)
+                e.printStackTrace()
                 throw (Exception("ERROR: JSON deserialization failed.", e))
             }
 
@@ -64,7 +66,6 @@ class MonitorThread(
     private fun validate(message: Message): Boolean {
         if(message.type == MessageType.Reject && message.payload == null) return false
         if(message.type == MessageType.Acknowledge && message.payload == null) return false
-        if(message.type == MessageType.Register && message.mode != MessageMode.Producer) return false
         return true
     }
 
