@@ -3,6 +3,7 @@ package ui
 import communication.ClientConnection
 import dto.MessagePayload
 import utils.ClientUtils
+import utils.TimeConverter
 import java.awt.*
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
@@ -142,14 +143,26 @@ class ClientWindow(private val connection: ClientConnection) : JFrame() {
 
         /** Server Status **/
         val getServerStatusButton = JButton("Get server status")
-        getServerStatusButton.addActionListener { connection.getServerStatus { Unit } }
+        getServerStatusButton.addActionListener {
+            connection.getServerStatus { status ->
+                notifyMessage("#STATUS:")
+                status.forEach {
+                    notifyMessage("topic: ${it.key}, producer: ${it.value}")
+                }
+            }
+        }
         panelGbc.gridx = 0
         panelGbc.gridy = 3
         userPanel.add(getServerStatusButton, panelGbc)
 
         /** Get Server Logs **/
         val getServerLogsButton = JButton("Get server logs")
-        getServerLogsButton.addActionListener { connection.getServerLogs { _, _ -> Unit } }
+        getServerLogsButton.addActionListener {
+            connection.getServerLogs { info, success ->
+                if(success) notifyMessage("SUCCESS: $info")
+                else notifyMessage("FAILURE: $info")
+            }
+        }
         panelGbc.gridx = 0
         panelGbc.gridy = 4
         userPanel.add(getServerLogsButton, panelGbc)
@@ -172,10 +185,22 @@ class ClientWindow(private val connection: ClientConnection) : JFrame() {
         panelGbc.gridy = 6
         userPanel.add(produceTopic, panelGbc)
 
+        val produceMessage = JTextField("Message")
+        panelGbc.gridx = 2
+        panelGbc.gridy = 6
+        panelGbc.gridwidth = 2
+        userPanel.add(produceMessage, panelGbc)
+
         val produceButton = JButton("Produce")
-        produceButton.addActionListener { connection.produce(produceTopic.text, MessagePayload("", "", true, "")) }
+        produceButton.addActionListener {
+            connection.produce(
+                produceTopic.text,
+                MessagePayload(TimeConverter().getTimestamp(), produceTopic.text, true, produceMessage.text)
+            )
+        }
         panelGbc.gridx = 0
         panelGbc.gridy = 6
+        panelGbc.gridwidth = 1
         userPanel.add(produceButton, panelGbc)
 
         /** Send File **/
@@ -216,7 +241,11 @@ class ClientWindow(private val connection: ClientConnection) : JFrame() {
         userPanel.add(createSubscriberTopic, panelGbc)
 
         val createSubscriberButton = JButton("Create subscriber")
-        createSubscriberButton.addActionListener { connection.createSubscriber(createSubscriberTopic.text) { Unit } }
+        createSubscriberButton.addActionListener {
+            connection.createSubscriber(createSubscriberTopic.text) { message ->
+                notifyMessage("#CREATE SUBSCRIBER: $message")
+            }
+        }
         panelGbc.gridx = 0
         panelGbc.gridy = 9
         userPanel.add(createSubscriberButton, panelGbc)

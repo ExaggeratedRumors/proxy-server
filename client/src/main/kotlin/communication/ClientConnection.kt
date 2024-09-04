@@ -35,7 +35,7 @@ class ClientConnection : Thread(), ClientAPI {
 
     /** Callbacks **/
     private val topicCallbacks: MutableMap<String, (Message) -> (Unit)> = HashMap()
-    private var statusCallback: (String) -> (Unit) = { _ -> }
+    private var statusCallback: (Map<String, String>) -> (Unit) = { _ -> }
     private var replyCallback: (Message) -> (Unit) = { _ -> }
 
     /** Private **/
@@ -92,8 +92,7 @@ class ClientConnection : Thread(), ClientAPI {
             }
             MessageType.Status -> {
                 val statusPayload = message.payload as StatusPayload
-                val statusData = mapper.writeValueAsString(statusPayload.data)
-                statusCallback.invoke(statusData)
+                statusCallback.invoke(statusPayload.data)
             }
             MessageType.Message -> {
                 topicCallbacks[message.topic]?.invoke(message)
@@ -171,7 +170,7 @@ class ClientConnection : Thread(), ClientAPI {
         return mapper.writeValueAsString(status)
     }
 
-    override fun getServerStatus(callback: (status: String) -> Unit) {
+    override fun getServerStatus(callback: (status: Map<String, String>) -> Unit) {
         if(!this.isInitialized) throw IllegalStateException("ERROR: Connection has not been initialized.")
         val message = Message(
             type = MessageType.Status,

@@ -9,7 +9,7 @@ interface ClientAPI {
     fun start(serverIP: String, serverPort: Int, clientID: String)
     fun isConnected(): Boolean
     fun getStatus(): String
-    fun getServerStatus(callback: (status: String) -> Unit)
+    fun getServerStatus(callback: (status: Map<String, String>) -> Unit)
     fun getServerLogs(callback: (info: String, success: Boolean) -> Unit)
     fun createProducer(topicName: String)
     fun produce(topicName: String, payload: Payload)
