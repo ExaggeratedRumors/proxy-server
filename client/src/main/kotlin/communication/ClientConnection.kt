@@ -13,6 +13,7 @@ import java.net.UnknownHostException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
+import kotlin.concurrent.thread
 
 class ClientConnection : Thread(), ClientAPI {
 
@@ -123,8 +124,9 @@ class ClientConnection : Thread(), ClientAPI {
             this.isInitialized = true
             this.clientID = clientID
             if(ClientUtils.DEBUG_MODE) println("ENGINE: Client started: (#$clientID $serverIP:$serverPort).")
-            start()
+            thread { run() }
         } catch (e: IllegalArgumentException) {
+            e.printStackTrace()
             throw(IllegalStateException("ERROR: Port number must be between 0 and 65535", e))
         } catch (e: ConnectException) {
             throw(Exception("ERROR: Failed to connect to the server.", e))
@@ -148,7 +150,6 @@ class ClientConnection : Thread(), ClientAPI {
                 sleep(ClientUtils.LISTENING_THREAD_SLEEP)
                 recv()
             } catch (e: SocketException) {
-                e.printStackTrace()
                 return stopConnection()
             } catch (e: Exception) {
                 e.printStackTrace()

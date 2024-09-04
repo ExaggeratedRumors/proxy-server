@@ -45,7 +45,7 @@ class CommunicationThread(
                         }
 
                         /** Start client service thread **/
-                        val connection = ClientServiceThread(clientSocket, listeners, Configuration.TIMEOUT)
+                        val connection = ClientServiceThread(clientSocket, listeners, 1000 * Configuration.TIMEOUT)
                         connections[clientSocket.port] = connection
                         connection.start()
                     } catch (e: SocketTimeoutException) {

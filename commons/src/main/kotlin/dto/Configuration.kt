@@ -10,7 +10,7 @@ object Configuration : Serializable {
         private set
     var LISTEN_PORT: Int = 8080
         private set
-    var TIMEOUT: Int = 20
+    var TIMEOUT: Int = 1
         private set
     var SIZE_LIMIT: Int = 4096
         private set
