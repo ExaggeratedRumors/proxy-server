@@ -104,7 +104,8 @@ class ServerRoutine: ConnectionListener, MessageManager {
     }
 
     override fun onMessageSend(response: Response) {
-        serverOutput.updateLog("#SEND: to ${response.receivers}")
+        val receivers = response.receivers.map { it.id }
+        serverOutput.updateLog("#SEND: to $receivers")
         if(Constance.DEBUG_MODE) println("ENGINE: Reply to ${response.receivers}: ${response.message}")
     }
 
