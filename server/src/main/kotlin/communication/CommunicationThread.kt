@@ -62,7 +62,7 @@ class CommunicationThread(
 
     fun send(response: Response) {
         response.receivers.forEach {
-            connections[it]?.send(response)
+            connections[it.port]?.send(response)
         }
     }
 

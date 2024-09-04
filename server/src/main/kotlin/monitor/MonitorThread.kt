@@ -1,12 +1,13 @@
 package com.ertools.monitor
 
-import utils.TimeConverter
 import com.ertools.utils.Constance
 import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.JsonMappingException
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import dto.*
 import utils.ObservableQueue
+import utils.TimeConverter
+import java.io.ByteArrayInputStream
+import java.io.ObjectInputStream
 
 class MonitorThread(
     private val requestQueue: ObservableQueue<Request>,
@@ -35,24 +36,29 @@ class MonitorThread(
             try {
                 message = deserialize(request)
             } catch (e: JsonProcessingException) {
-                replyError(request.clientPort)
+                replyError(request.client)
                 throw (Exception("ERROR: Incorrect JSON processing.", e))
             } catch (e: JsonMappingException) {
-                replyError(request.clientPort)
+                replyError(request.client)
                 throw (Exception("ERROR: JSON deserialization failed.", e))
             }
 
             /* Validate message */
             val validateResult = validate(message)
-            if(!validateResult) return replyError(request.clientPort)
+            if(!validateResult) return replyError(request.client)
 
             /* Choose response */
-            serviceMessage(message, request.clientPort)
+            serviceMessage(message, request.client)
         }
     }
 
     private fun deserialize(request: Request): Message {
-        return jacksonObjectMapper().readValue(request.serializedMessage, Message::class.java)
+        val byteArrayInputStream = ByteArrayInputStream(request.serializedMessage)
+        val objectInputStream = ObjectInputStream(byteArrayInputStream)
+        val message = objectInputStream.readObject() as Message
+        objectInputStream.close()
+        byteArrayInputStream.close()
+        return message
     }
 
     private fun validate(message: Message): Boolean {
@@ -62,21 +68,27 @@ class MonitorThread(
         return true
     }
 
-    private fun serviceMessage(message: Message, port: Int) {
+    private fun serviceMessage(message: Message, client: ClientInfo) {
+        val clientInfo = ClientInfo(
+            message.id,
+            client.port,
+            client.ip,
+            client.socket
+        )
         when(message.type) {
             MessageType.Register -> {
-                if(message.mode == MessageMode.Producer) return registerTopic(port, message)
-                if(message.mode == MessageMode.Subscriber) return subscribeTopic(port, message)
+                if(message.mode == MessageMode.Producer) return registerTopic(clientInfo, message)
+                if(message.mode == MessageMode.Subscriber) return subscribeTopic(clientInfo, message)
             }
             MessageType.Withdraw -> {
-                if(message.mode == MessageMode.Producer) return withdrawTopic(port, message)
-                if(message.mode == MessageMode.Subscriber) return unsubscribeTopic(port, message)
+                if(message.mode == MessageMode.Producer) return withdrawTopic(clientInfo, message)
+                if(message.mode == MessageMode.Subscriber) return unsubscribeTopic(clientInfo, message)
             }
             MessageType.Message, MessageType.File -> {
-                if(message.mode == MessageMode.Producer) return publishMessage(port, message)
+                if(message.mode == MessageMode.Producer) return publishMessage(clientInfo, message)
             }
-            MessageType.Config -> return replyConfiguration(port)
-            MessageType.Status -> return replyStatus(port)
+            MessageType.Config -> return replyConfiguration(clientInfo)
+            MessageType.Status -> return replyStatus(clientInfo)
             else -> {
                 return
             }
@@ -87,39 +99,39 @@ class MonitorThread(
     /** Response to listeners **/
     /***************************/
 
-    private fun registerTopic(port: Int, message: Message) {
-        val success = messageManager.onRegisterTopic(port, message.topic, message.id)
+    private fun registerTopic(client: ClientInfo, message: Message) {
+        val success = messageManager.onRegisterTopic(client, message.topic, message.id)
         when(success) {
-            false -> replyRejection(port, message, "topic is already exist")
-            true -> replyAcknowledge(port, message, "OK")
+            false -> replyRejection(client, message, "topic is already exist")
+            true -> replyAcknowledge(client, message, "OK")
         }
     }
 
-    private fun withdrawTopic(port: Int, message: Message) {
-        val success = messageManager.onWithdrawTopic(port, message.topic)
+    private fun withdrawTopic(client: ClientInfo, message: Message) {
+        val success = messageManager.onWithdrawTopic(client, message.topic)
         when(success) {
-            false -> replyRejection(port, message, "no topic registered")
-            true -> replyAcknowledge(port, message, "Producer withdrawed the topic")
+            false -> replyRejection(client, message, "no topic registered")
+            true -> replyAcknowledge(client, message, "Producer withdrawed the topic")
         }
     }
 
-    private fun subscribeTopic(port: Int, message: Message) {
-        val success = messageManager.onSubscription(port, message.topic)
+    private fun subscribeTopic(client: ClientInfo, message: Message) {
+        val success = messageManager.onSubscription(client, message.topic)
         when(success) {
-            false -> replyRejection(port, message, "no such topic registered")
-            true -> replyAcknowledge(port, message, "OK")
+            false -> replyRejection(client, message, "no such topic registered")
+            true -> replyAcknowledge(client, message, "OK")
         }
     }
 
-    private fun unsubscribeTopic(port: Int, message: Message) {
-        val success = messageManager.onUnsubscription(port, message.topic)
+    private fun unsubscribeTopic(client: ClientInfo, message: Message) {
+        val success = messageManager.onUnsubscription(client, message.topic)
         when(success) {
-            false -> replyRejection(port, message, "no topic registered")
-            true -> replyAcknowledge(port, message, "Subscription of the topic withdrawed")
+            false -> replyRejection(client, message, "no topic registered")
+            true -> replyAcknowledge(client, message, "Subscription of the topic withdrawed")
         }
     }
 
-    private fun publishMessage(port: Int, message: Message) {
+    private fun publishMessage(client: ClientInfo, message: Message) {
         val responseMessage = Message(
             type = message.type,
             id = Configuration.SERVER_ID,
@@ -132,15 +144,15 @@ class MonitorThread(
         var receiversAmount = 0
         try {
             receiversAmount += messageManager.onPublish(message.topic, responseMessage)
-            if(receiversAmount == 0) replyRejection(port, message, "Topic has not any listeners")
-            else replyAcknowledge(port, message, "OK")
+            if(receiversAmount == 0) replyRejection(client, message, "Topic has not any listeners")
+            else replyAcknowledge(client, message, "OK")
         } catch (e: IllegalStateException) {
-            replyRejection(port, message, "No topic registered")
+            replyRejection(client, message, "No topic registered")
         }
     }
 
-    private fun replyConfiguration(port: Int) {
-        val configuration = messageManager.onConfigRequest(port)
+    private fun replyConfiguration(client: ClientInfo) {
+        val configuration = messageManager.onConfigRequest(client)
 
         val responseMessage = Message(
             type = MessageType.Config,
@@ -151,11 +163,11 @@ class MonitorThread(
             payload = ConfigPayload(configuration)
         )
 
-        messageManager.onReply(port, responseMessage)
+        messageManager.onReply(client, responseMessage)
     }
 
-    private fun replyStatus(port: Int) {
-        val status = messageManager.onStatusRequest(port)
+    private fun replyStatus(client: ClientInfo) {
+        val status = messageManager.onStatusRequest(client)
 
         val responseMessage = Message(
             type = MessageType.Status,
@@ -166,10 +178,10 @@ class MonitorThread(
             payload = StatusPayload(status)
         )
 
-        messageManager.onReply(port, responseMessage)
+        messageManager.onReply(client, responseMessage)
     }
 
-    private fun replyError(port: Int) {
+    private fun replyError(client: ClientInfo) {
         val payload = MessagePayload(
             timestampOfMessage = timeConverter.getTimestamp(),
             topicOfMessage = "logs",
@@ -185,10 +197,10 @@ class MonitorThread(
             payload = payload
         )
 
-        messageManager.onReply(port, responseMessage)
+        messageManager.onReply(client, responseMessage)
     }
 
-    private fun replyRejection(port: Int, message: Message, messageContent: String) {
+    private fun replyRejection(client: ClientInfo, message: Message, messageContent: String) {
         val payload = MessagePayload(
             timestampOfMessage = message.timestamp,
             topicOfMessage = message.topic,
@@ -204,10 +216,10 @@ class MonitorThread(
             payload = payload
         )
 
-        messageManager.onReply(port, responseMessage)
+        messageManager.onReply(client, responseMessage)
     }
 
-    private fun replyAcknowledge(port: Int, message: Message, messageContent: String) {
+    private fun replyAcknowledge(client: ClientInfo, message: Message, messageContent: String) {
         val payload = MessagePayload(
             timestampOfMessage = message.timestamp,
             topicOfMessage = message.topic,
@@ -223,6 +235,6 @@ class MonitorThread(
             payload = payload
         )
 
-        messageManager.onReply(port, responseMessage)
+        messageManager.onReply(client, responseMessage)
     }
 }

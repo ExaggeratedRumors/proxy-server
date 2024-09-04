@@ -1,33 +1,27 @@
 package communication
 
-import utils.TimeConverter
 import com.fasterxml.jackson.databind.ObjectMapper
 import dto.*
 import utils.ClientUtils
 import utils.ObservableQueue
-import java.io.File
-import java.io.ObjectInputStream
-import java.io.ObjectOutputStream
+import utils.TimeConverter
+import java.io.*
 import java.net.ConnectException
-import java.net.InetSocketAddress
 import java.net.Socket
+import java.net.SocketException
 import java.net.UnknownHostException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 
-class ClientConnection (
-    private val port: Int = ClientUtils.DEFAULT_PORT,
-    private val ip: String = ClientUtils.DEFAULT_IP,
-) : Thread(), ClientAPI {
+class ClientConnection : Thread(), ClientAPI {
+
     /** Connection data **/
-    private var clientID: String = "client$port"
+    private var clientID: String = "client"
     private var isInitialized = false
     private var socket: Socket? = null
-    private var writer: ObjectOutputStream? = null
-    private var reader: ObjectInputStream? = null
+    private var writer: OutputStream? = null
+    private var reader: InputStream? = null
     private var timeConverter: TimeConverter = TimeConverter()
     private val mapper: ObjectMapper = ObjectMapper()
     private var configuration: Configuration? = null
@@ -47,16 +41,46 @@ class ClientConnection (
     private fun send(message: Message) {
         if(!isInitialized) throw IllegalStateException("ERROR: Connection has not been initialized.")
         try {
-            writer!!.writeObject(message)
+            val bufferSize = configuration?.SIZE_LIMIT ?: ClientUtils.DEFAULT_SIZE_LIMIT
+            val bufferStream = ByteArrayOutputStream(bufferSize)
+            val objectOutputStream = ObjectOutputStream(bufferStream)
+            objectOutputStream.writeObject(message)
+            objectOutputStream.flush()
+            val byteArray = bufferStream.toByteArray()
+            val bufferStreamSize = bufferStream.size()
+            objectOutputStream.close()
+            bufferStream.close()
+            if(bufferStreamSize > bufferSize) throw IllegalArgumentException()
+            writer!!.write(byteArray)
+            writer!!.flush()
+            if (ClientUtils.DEBUG_MODE) println("ENGINE: send [$message].")
             sentMessages.add(message)
+        } catch (e: IllegalArgumentException) {
+            if(ClientUtils.DEBUG_MODE) println("ERROR: message size is too large.")
         } catch (e: Exception) {
             e.printStackTrace()
             throw(e)
         }
     }
 
-    private fun serviceMessage(message: Message) {
+    private fun recv(): Message? {
+        if(!isInitialized) throw IllegalStateException("ERROR: Connection has not been initialized.")
+        val sizeLimit = configuration?.SIZE_LIMIT ?: ClientUtils.DEFAULT_SIZE_LIMIT
+        val buffer = ByteArray(sizeLimit)
+        val messageSize = reader!!.read(buffer, 0, sizeLimit)
+        if(messageSize == -1) return null
+        val byteArrayInputStream = ByteArrayInputStream(buffer, 0, messageSize)
+        val objectInputStream = ObjectInputStream(byteArrayInputStream)
+        val message = objectInputStream.readObject() as Message
+        objectInputStream.close()
+        byteArrayInputStream.close()
+        if(ClientUtils.DEBUG_MODE) println("ENGINE: received [$message].")
         receivedMessages.add(message)
+        return message
+    }
+
+    private fun serviceMessage(message: Message) {
+        if(ClientUtils.DEBUG_MODE) println("ENGINE: serviceMessage [$message].")
 
         when(message.type) {
             MessageType.Acknowledge, MessageType.Reject -> {
@@ -91,10 +115,9 @@ class ClientConnection (
     override fun start(serverIP: String, serverPort: Int, clientID: String) {
         try {
             if(this.isInitialized) stopConnection()
-            this.socket = Socket(ip, port)
-            this.socket!!.bind(InetSocketAddress(serverIP, serverPort))
-            this.writer = ObjectOutputStream(socket!!.getOutputStream())
-            this.reader = ObjectInputStream(socket!!.getInputStream())
+            this.socket = Socket(serverIP, serverPort)
+            this.writer = socket!!.getOutputStream()
+            this.reader = socket!!.getInputStream()
             this.topics.clear()
             this.subscriptions.clear()
             this.isInitialized = true
@@ -123,8 +146,10 @@ class ClientConnection (
         while (isInitialized) {
             try {
                 sleep(ClientUtils.LISTENING_THREAD_SLEEP)
-                val receivedMessage = reader!!.readObject() as Message
-                receivedMessages.add(receivedMessage)
+                recv()
+            } catch (e: SocketException) {
+                e.printStackTrace()
+                return stopConnection()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -133,13 +158,16 @@ class ClientConnection (
 
     override fun isConnected(): Boolean {
         if(!this.isInitialized) return false
+        if(ClientUtils.DEBUG_MODE) println("ENGINE: isConnected [${socket!!.isConnected}].")
         return socket!!.isConnected
     }
 
     override fun getStatus(): String {
         if(!this.isInitialized) throw IllegalStateException("ERROR: Connection has not been initialized.")
         val communicationData = Pair(topics, subscriptions)
-        return mapper.writeValueAsString(communicationData)
+        val status = mapper.writeValueAsString(communicationData)
+        if(ClientUtils.DEBUG_MODE) println("ENGINE: getStatus [$status].")
+        return mapper.writeValueAsString(status)
     }
 
     override fun getServerStatus(callback: (status: String) -> Unit) {
@@ -275,6 +303,7 @@ class ClientConnection (
             topicCallbacks.clear()
             statusCallback = { _ -> }
             replyCallback = { _ -> }
+            if(ClientUtils.DEBUG_MODE) println("ENGINE: stop.")
         }
     }
 }

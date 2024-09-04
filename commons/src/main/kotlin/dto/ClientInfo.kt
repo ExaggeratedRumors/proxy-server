@@ -1,9 +1,10 @@
 package dto
 
+import java.net.Socket
+
 class ClientInfo (
-    val id: Int,
+    val id: String,
     val port: Int,
-    val ip: String
-) {
-    val messages: ArrayList<String> = ArrayList()
-}
+    val ip: String,
+    val socket: Socket
+)

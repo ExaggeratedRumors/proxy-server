@@ -1,10 +1,10 @@
 package com.ertools.communication
 
-import dto.Response
-import dto.Configuration
 import com.ertools.utils.Constance
-import com.fasterxml.jackson.databind.ObjectMapper
+import dto.ClientInfo
+import dto.Configuration
 import dto.Request
+import dto.Response
 import java.io.*
 import java.net.Socket
 import java.net.SocketTimeoutException
@@ -15,10 +15,8 @@ class ClientServiceThread(
     timeout: Int = Configuration.TIMEOUT
 ): Thread() {
     private var stopClient = true
-    private var messageSize: Int = 0
-    private var buffer: ByteArray = ByteArray(Configuration.SIZE_LIMIT)
-    private val writer: ObjectOutputStream = ObjectOutputStream(client.getOutputStream())
-    private val reader: ObjectInputStream = ObjectInputStream(client.getInputStream())
+    private val writer: OutputStream = client.getOutputStream()
+    private val reader: InputStream = client.getInputStream()
 
     init {
         client.soTimeout = timeout
@@ -32,6 +30,7 @@ class ClientServiceThread(
                 sleep(Constance.CONNECTION_THREAD_SLEEP)
                 recv() ?: continue
             } catch (e: SocketTimeoutException) {
+                e.printStackTrace()
                 if (Constance.DEBUG_MODE) error("ENGINE: Socket timeout ${client.inetAddress.hostAddress}")
             } catch (e: OutOfMemoryError) {
                 shutdown()
@@ -48,20 +47,15 @@ class ClientServiceThread(
         }
     }
 
-    private fun recv(): String? {
+    private fun recv(): ByteArray? {
         if(stopClient) throw IllegalStateException("ERROR: Client ${client.port} is stopped.")
-        try {
-            messageSize = reader.read(buffer)
-            if (messageSize == -1) return null
-
-            val rawMessage: String = buffer.copyOfRange(0, messageSize).toString(Charsets.UTF_8)
-            listeners.forEach { it.onMessageReceive(Request(rawMessage, client.port)) }
-
-            return rawMessage
-        } catch (e: Exception) {
-            e.printStackTrace()
-            throw e
-        }
+        val buffer = ByteArray(Configuration.SIZE_LIMIT)
+        val messageSize = reader.read(buffer, 0, Configuration.SIZE_LIMIT)
+        if(messageSize == -1) return null
+        val rawMessage = buffer.copyOfRange(0, messageSize)
+        val clientInfo = ClientInfo("", port = client.port, ip = client.inetAddress.hostAddress, socket = client)
+        listeners.forEach { it.onMessageReceive(Request(rawMessage, clientInfo)) }
+        return rawMessage
     }
 
     /*********/
@@ -79,7 +73,17 @@ class ClientServiceThread(
     fun send(response: Response) {
         if(stopClient) throw IllegalStateException("ERROR: Client ${client.port} is stopped.")
         try {
-            writer.writeObject(response.message)
+            val bufferStream = ByteArrayOutputStream(Configuration.SIZE_LIMIT)
+            val objectOutputStream = ObjectOutputStream(bufferStream)
+            objectOutputStream.writeObject(response.message)
+            objectOutputStream.flush()
+            val byteArray = bufferStream.toByteArray()
+            val bufferStreamSize = bufferStream.size()
+            objectOutputStream.close()
+            bufferStream.close()
+            if(bufferStreamSize > Configuration.SIZE_LIMIT) throw IllegalArgumentException()
+            writer.write(byteArray)
+            writer.flush()
             listeners.forEach { it.onMessageSend(response) }
         } catch (e: Exception) {
             e.printStackTrace()

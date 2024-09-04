@@ -1,6 +1,8 @@
 package dto
 
-interface Payload
+import java.io.Serializable
+
+interface Payload : Serializable
 
 data class MessagePayload(
     val timestampOfMessage: String,
