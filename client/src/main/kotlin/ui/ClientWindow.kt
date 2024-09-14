@@ -244,7 +244,7 @@ class ClientWindow(private val connection: ClientConnection) : JFrame() {
         createSubscriberButton.addActionListener {
             connection.createSubscriber(createSubscriberTopic.text) { message ->
                 val messageContent = (message.payload as MessagePayload).message
-                notifyMessage("#MESSAGE: $messageContent [topic: ${message.topic}")
+                notifyMessage("#MESSAGE: $messageContent [topic: ${message.topic}]")
             }
         }
         panelGbc.gridx = 0

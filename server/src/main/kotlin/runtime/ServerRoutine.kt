@@ -12,12 +12,9 @@ import utils.ObservableQueue
 
 class ServerRoutine: ConnectionListener, MessageManager {
     /** Connection service **/
-    private lateinit var topics: MutableList<Topic>   /** Topics **/
-    private lateinit var requestQueue: ObservableQueue<Request>
-
-    /*** KKO  ***/
-    private lateinit var responseQueue: ObservableQueue<Response>
-    /*** KKW  ***/
+    private lateinit var topics: MutableList<Topic>                 /** Topics **/
+    private lateinit var requestQueue: ObservableQueue<Request>     /*** KKO  ***/
+    private lateinit var responseQueue: ObservableQueue<Response>   /*** KKW  ***/
 
     /** Threads **/
     private lateinit var communicationThread: CommunicationThread
@@ -87,27 +84,27 @@ class ServerRoutine: ConnectionListener, MessageManager {
 
     override fun onClientAccept(port: Int, ip: String) {
         serverOutput.updateLog("#ACCEPT: $ip:$port")
-        if(Constance.DEBUG_MODE) println("ENGINE: $port ($ip) joined to server.")
+        if(Constance.DEBUG_MODE) println("ENGINE: port $port ($ip) joined to server.")
     }
 
     override fun onClientDisconnect(port: Int) {
         topics.forEach { it.subscribers.removeIf { client-> client.port == port} }
         topics.removeIf { it.producer?.port == port }
-        serverOutput.updateLog("#DISCONNECT: $port)")
+        serverOutput.updateLog("#DISCONNECT: port $port)")
         serverOutput.updateStatus(topics)
-        if(Constance.DEBUG_MODE) println("ENGINE: $port has been disconnected.")
+        if(Constance.DEBUG_MODE) println("ENGINE: port $port has been disconnected.")
     }
 
     override fun onMessageReceive(request: Request) {
         requestQueue.add(request)
-        serverOutput.updateLog("#RECEIVED: from ${request.client.port}")
-        if(Constance.DEBUG_MODE) println("ENGINE: Received from ${request.client.port}")
+        serverOutput.updateLog("#RECEIVED: from port ${request.client.port}")
+        if(Constance.DEBUG_MODE) println("ENGINE: Received from port ${request.client.port}")
     }
 
     override fun onMessageSend(response: Response) {
         val receivers = response.receivers.map { it.id }
-        serverOutput.updateLog("#SEND: to $receivers")
-        if(Constance.DEBUG_MODE) println("ENGINE: Reply to ${response.receivers}: ${response.message}")
+        serverOutput.updateLog("#SEND: to port $receivers")
+        if(Constance.DEBUG_MODE) println("ENGINE: Reply to port ${response.receivers}: ${response.message}")
     }
 
     /**************************/
@@ -119,7 +116,7 @@ class ServerRoutine: ConnectionListener, MessageManager {
             message = message,
             receivers = listOf(client)
         ))
-        serverOutput.updateLog("#QUEUE REPLY: to ${client.port}")
+        serverOutput.updateLog("#QUEUE REPLY: to [${client.id}]")
     }
 
     override fun onPublish(topicName: String, message: Message): Int {
@@ -131,7 +128,8 @@ class ServerRoutine: ConnectionListener, MessageManager {
             message = message,
             receivers = receivers
         ))
-        serverOutput.updateLog("#QUEUE PUBLISH: to $receivers")
+        val subs = receivers.map { it.id }
+        serverOutput.updateLog("#QUEUE PUBLISH: to $subs")
         return receivers.size
     }
 
@@ -143,7 +141,7 @@ class ServerRoutine: ConnectionListener, MessageManager {
             producerId = producerId
         )
         topics.add(newTopic)
-        serverOutput.updateLog("#REGISTER: topic $topicName [$producerId: ${producer.port}]")
+        serverOutput.updateLog("#REGISTER: topic $topicName [${producer.id}]")
         serverOutput.updateStatus(topics)
         return true
     }
@@ -153,7 +151,7 @@ class ServerRoutine: ConnectionListener, MessageManager {
         if(topic == null) return false
         if(topic.producer?.id != producer.id) return false
         topics.remove(topic)
-        serverOutput.updateLog("#WITHDRAW: topic $topicName")
+        serverOutput.updateLog("#WITHDRAW: topic $topicName [${producer.id}]")
         serverOutput.updateStatus(topics)
         return true
     }
@@ -162,7 +160,7 @@ class ServerRoutine: ConnectionListener, MessageManager {
         val topic = topics.firstOrNull { it.topicName == topicName }
         if(topic == null) return false
         topic.subscribers.add(client)
-        serverOutput.updateLog("#REGISTER: subscription to $topicName [${client.port}]")
+        serverOutput.updateLog("#REGISTER: subscription to $topicName [${client.id}]")
         serverOutput.updateStatus(topics)
         return true
     }
@@ -171,18 +169,18 @@ class ServerRoutine: ConnectionListener, MessageManager {
         val topic = topics.firstOrNull { it.topicName == topicName }
         if(topic == null) return false
         if(!topic.subscribers.remove(client)) return false
-        serverOutput.updateLog("#WITHDRAW: subscription $topicName [${client.port}]")
+        serverOutput.updateLog("#WITHDRAW: subscription $topicName [${client.id}]")
         serverOutput.updateStatus(topics)
         return true
     }
 
     override fun onStatusRequest(client: ClientInfo): Map<String, String> {
-        serverOutput.updateLog("#STATUS: given [${client.port}]")
+        serverOutput.updateLog("#STATUS: sent [${client.id}]")
         return topics.associate { it.topicName to it.producerId }
     }
 
     override fun onConfigRequest(client: ClientInfo): Configuration {
-        serverOutput.updateLog("#CONFIG: given [${client.port}]")
+        serverOutput.updateLog("#CONFIG: sent [${client.id}]")
         return Configuration
     }
 }

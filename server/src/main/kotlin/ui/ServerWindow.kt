@@ -84,7 +84,8 @@ class ServerWindow(
     override fun updateStatus(status: List<Topic>) {
         statusArea.text = ""
         status.forEach {
-            statusArea.text = statusArea.text.plus("${it.topicName} [${it.producerId}]: ${it.subscribers}\n")
+            val subList = it.subscribers.map { sub -> sub.id }
+            statusArea.text = statusArea.text.plus("${it.topicName} [${it.producerId}]: $subList\n")
         }
     }
 }
