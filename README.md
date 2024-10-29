@@ -1,14 +1,15 @@
 # Proxy server
 
-- Autor: Dominik Gajda
-- Album: 240661
-- Przedmiot: Programowanie Sieciowe
-- Data oddania projektu: 16.09.2024
+![Kotlin](https://shields.io/badge/Kotlin-2.0-purple)
+
+- Proxy server transmitting messages between clients.
 
 # Requirements
 
 - JDK 20
+- Kotlin 2.0
 - Gradle 8.4
+- Jackson 2.17
 
 # Execution
 
