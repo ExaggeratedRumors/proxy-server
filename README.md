@@ -2,7 +2,7 @@
 
 ![Kotlin](https://shields.io/badge/Kotlin-2.0-purple)
 
-- Proxy server transmitting messages between clients.
+Proxy server transmitting messages between clients.
 
 ## Requirements
 
