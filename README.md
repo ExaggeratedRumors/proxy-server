@@ -4,14 +4,14 @@
 
 - Proxy server transmitting messages between clients.
 
-# Requirements
+## Requirements
 
 - JDK 20
 - Kotlin 2.0
 - Gradle 8.4
 - Jackson 2.17
 
-# Execution
+## Execution
 
 1. Run server
 ```bash
@@ -23,7 +23,7 @@
 ./gradlew :client:run
 ```
 
-# Modules
+## Modules
 
 - client - client source code
 - server - server source code
